@@ -3,12 +3,6 @@
 
 #ifdef Debug_log_on
 
-// Wähle UART-Port und Pins
-#define DEBUG_UART_PORT 1         // 0 = Serial, 1 = Serial1, 2 = Serial2
-#define DEBUG_TX_PIN    17        // TX GPIO
-#define DEBUG_RX_PIN    16        // RX GPIO (optional)
-#define DEBUG_BAUDRATE  115200
-
 uint32_t stack[1000];  // optional, wie im Original
 
 void Debug_log_init()

@@ -1,9 +1,7 @@
 #pragma once
 
 #include "main.h"
-
-#define Debug_log_on
-#define Debug_log_baudrate 115200
+#include "pins.h"
 
 #ifdef __cplusplus
 extern "C" {

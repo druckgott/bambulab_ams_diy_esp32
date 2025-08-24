@@ -1,32 +1,37 @@
 /*!
  * @file Adafruit_NeoPixel.cpp
  *
- * @mainpage 用于驱动Adafruit NeoPixel可寻址LED、FLORA RGB智能像素及兼容设备（如WS2811、WS2812、WS2812B、SK6812等）的Arduino库
+ * @mainpage Arduino-Bibliothek zum Ansteuern von Adafruit NeoPixel-adressierbaren LEDs, 
+ *           FLORA RGB-Smart-Pixeln und kompatiblen Geräten (wie WS2811, WS2812, WS2812B, SK6812 usw.)
  *
- * @section intro_sec 简介
+ * @section intro_sec Einführung
  *
- * 这是Adafruit NeoPixel库的文档，适用于Arduino平台，支持多种微控制器（大多数AVR板、许多ARM设备、ESP8266和ESP32等），
- * 可控制Adafruit NeoPixels、FLORA RGB智能像素及兼容设备（如WS2811、WS2812、WS2812B、SK6812等）。
+ * Dies ist die Dokumentation der Adafruit NeoPixel-Bibliothek für die Arduino-Plattform.  
+ * Sie unterstützt verschiedene Mikrocontroller (die meisten AVR-Boards, viele ARM-Geräte, ESP8266 und ESP32 usw.)  
+ * und kann Adafruit NeoPixels, FLORA RGB-Smart-Pixel sowie kompatible Geräte (wie WS2811, WS2812, WS2812B, SK6812 usw.) steuern.
  *
- * Adafruit投入了时间和资源来提供此开源代码，请通过购买Adafruit产品来支持Adafruit和开源硬件！
+ * Adafruit hat Zeit und Ressourcen in die Bereitstellung dieses Open-Source-Codes investiert.  
+ * Bitte unterstütze Adafruit und Open-Source-Hardware durch den Kauf von Adafruit-Produkten!
  *
- * @section author 作者
+ * @section author Autor
  *
- * 由Phil \"Paint Your Dragon\" Burgess为Adafruit Industries编写，
- * PJRC、Michael Miller及其他开源社区成员有贡献。
+ * Geschrieben von Phil "Paint Your Dragon" Burgess für Adafruit Industries,  
+ * mit Beiträgen von PJRC, Michael Miller und weiteren Mitgliedern der Open-Source-Community.
  *
- * @section license 许可证
+ * @section license Lizenz
  *
- * 本文件是Adafruit_NeoPixel库的一部分。
+ * Diese Datei ist Teil der Adafruit_NeoPixel-Bibliothek.
  *
- * Adafruit_NeoPixel是自由软件：你可以根据GNU较宽通用公共许可证（LGPL）第3版或更高版本的条款，
- * 重新发布和/或修改它。
+ * Adafruit_NeoPixel ist freie Software:  
+ * Du kannst sie unter den Bedingungen der GNU Lesser General Public License (LGPL), Version 3 oder neuer,  
+ * weiterveröffentlichen und/oder verändern.
  *
- * Adafruit_NeoPixel以希望有用的方式发布，但不提供任何担保，
- * 甚至不保证适销性或适用于特定目的。详情请参阅LGPL。
+ * Adafruit_NeoPixel wird in der Hoffnung veröffentlicht, dass es nützlich ist,  
+ * jedoch ohne jegliche Garantie – nicht einmal die implizite Garantie der Marktgängigkeit  
+ * oder der Eignung für einen bestimmten Zweck. Siehe die LGPL für weitere Details.
  *
- * 你应该已经收到LGPL的副本。如果没有，请访问
- * <http://www.gnu.org/licenses/>。
+ * Eine Kopie der LGPL solltest du bereits erhalten haben. Falls nicht, siehe:  
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,12 +62,12 @@
 #endif
 
 /*!
-  @brief   当长度、引脚和像素类型在编译时已知时的NeoPixel构造函数
-  @param   n  灯带上的NeoPixel数量
-  @param   p  用于驱动NeoPixel数据的Arduino引脚号
-  @param   t  像素类型——将Adafruit_NeoPixel.h中定义的NEO_*常量相加，
-              例如NEO_GRB+NEO_KHZ800表示需要800KHz数据流且颜色顺序为GRB
-  @return  Adafruit_NeoPixel对象。使用前需调用begin()函数。
+  @brief   NeoPixel-Konstruktor, wenn Länge, Pin und Pixeltyp bereits zur Kompilierzeit bekannt sind
+  @param   n  Anzahl der NeoPixel auf dem LED-Streifen
+  @param   p  Arduino-Pin-Nummer, die zur Ansteuerung der NeoPixel-Daten verwendet wird
+  @param   t  Pixeltyp – Summe der in Adafruit_NeoPixel.h definierten NEO_* Konstanten.  
+              Beispiel: NEO_GRB + NEO_KHZ800 bedeutet ein Datenstrom von 800 kHz mit der Farb-Reihenfolge GRB
+  @return  Ein Adafruit_NeoPixel-Objekt. Vor der Verwendung muss die Funktion begin() aufgerufen werden.
 */
 
 Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t p, neoPixelType t)
@@ -79,11 +84,14 @@ Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t p, neoPixelType t)
 }
 
 /*!
-  @brief   “空”NeoPixel构造函数，当长度、引脚和/或像素类型在编译时未知，
-           需后续用updateType()、updateLength()和setPin()初始化。
-  @return  Adafruit_NeoPixel对象。使用前需调用begin()函数。
-  @note    此函数已弃用，仅为兼容旧项目。新项目应使用第一个构造函数语法（长度、引脚、类型）。
+  @brief   „Leerer“ NeoPixel-Konstruktor. Wird verwendet, wenn Länge, Pin und/oder Pixeltyp 
+           zur Kompilierzeit noch nicht bekannt sind. Muss anschließend mit updateType(), 
+           updateLength() und setPin() initialisiert werden.
+  @return  Ein Adafruit_NeoPixel-Objekt. Vor der Verwendung muss die Funktion begin() aufgerufen werden.
+  @note    Diese Funktion ist veraltet und nur für die Kompatibilität mit älteren Projekten enthalten.  
+           Neue Projekte sollten die Konstruktor-Syntax mit Länge, Pin und Typ verwenden.
 */
+
 Adafruit_NeoPixel::Adafruit_NeoPixel()
     :
 #if defined(NEO_KHZ400)
@@ -94,7 +102,8 @@ Adafruit_NeoPixel::Adafruit_NeoPixel()
 }
 
 /*!
-  @brief   释放Adafruit_NeoPixel对象，将数据引脚恢复为输入模式。
+  @brief   Gibt das Adafruit_NeoPixel-Objekt frei und setzt den Daten-Pin 
+           zurück in den Eingangsmodus.
 */
 Adafruit_NeoPixel::~Adafruit_NeoPixel() {
 #ifdef ARDUINO_ARCH_ESP32
@@ -117,8 +126,8 @@ Adafruit_NeoPixel::~Adafruit_NeoPixel() {
 }
 
 /*!
-  @brief   配置NeoPixel引脚为输出模式。
-  @returns 如果无法分配所需资源则返回false
+  @brief   Konfiguriert den NeoPixel-Pin als Ausgang.
+  @returns Gibt false zurück, wenn die benötigten Ressourcen nicht zugewiesen werden konnten.
 */
 bool Adafruit_NeoPixel::begin(void) {
   if (pin >= 0) {
@@ -144,12 +153,13 @@ bool Adafruit_NeoPixel::begin(void) {
 }
 
 /*!
-  @brief   更改已声明的Adafruit_NeoPixel灯带对象的长度。旧数据会被释放，新数据会被清空。
-           引脚号和像素格式不变。
-  @param   n  灯带的新长度（像素数）
-  @note    此函数已弃用，仅为兼容旧项目。新项目应使用第一个构造函数语法（长度、引脚、类型）。
+  @brief   Ändert die Länge eines bereits deklarierten Adafruit_NeoPixel-Streifen-Objekts. 
+           Alte Daten werden freigegeben, neue Daten werden geleert. 
+           Die Pin-Nummer und das Pixelformat bleiben unverändert.
+  @param   n  Neue Länge des LED-Streifens (Anzahl der Pixel)
+  @note    Diese Funktion ist veraltet und nur für die Kompatibilität mit älteren Projekten enthalten.  
+           Neue Projekte sollten die Konstruktor-Syntax mit Länge, Pin und Typ verwenden.
 */
-
 void Adafruit_NeoPixel::updateLength(uint16_t n) {
   free(pixels); // Free existing data (if any)
 
@@ -164,20 +174,21 @@ void Adafruit_NeoPixel::updateLength(uint16_t n) {
 }
 
 /*!
-  @brief 更改之前声明的像素格式
-           Adafruit_NeoPixel灯带对象。如果格式从一个变为另一个
-           将RGB变体转换为RGBW变体（或将RGBW转换为RGB），旧的
-           数据将被释放，新数据将被清空。否则，
-           旧数据将保留在RAM中，并且不会重新排序到
-           由于是新格式，建议随后执行 clear() 操作。
-  @param t 像素类型 -- 将NEO_*常量（在...中定义）相加
-              例如，在Adafruit_NeoPixel.h中，对于NEO_GRB+NEO_KHZ800
-              NeoPixels期望接收800 KHz（而非400 KHz）的数据流
-              颜色字节以绿色、红色、蓝色的顺序表示像素。
-  @note 此函数已弃用，此处仅用于旧项目
-           可能仍然在使用它。新项目应改用
-           “new”关键字与第一个构造函数的语法
-           （长度，引脚，类型）。
+  @brief   Ändert das zuvor deklarierte Pixelformat eines 
+           Adafruit_NeoPixel-Streifen-Objekts. Wenn das Format von einer 
+           RGB-Variante zu einer RGBW-Variante (oder umgekehrt von RGBW zu RGB) 
+           geändert wird, werden die alten Daten freigegeben und neue Daten 
+           geleert. Andernfalls bleiben die alten Daten im RAM bestehen und 
+           werden nicht in die neue Reihenfolge des Formats umsortiert.  
+           Daher wird empfohlen, anschließend clear() auszuführen.
+  @param   t  Pixeltyp – Summe der NEO_* Konstanten (definiert in Adafruit_NeoPixel.h).  
+              Beispiel: NEO_GRB + NEO_KHZ800 bedeutet, dass NeoPixels einen 
+              800-kHz-Datenstrom (anstatt 400 kHz) erwarten und die Farbreihenfolge 
+              der Bytes Grün, Rot, Blau ist.
+  @note    Diese Funktion ist veraltet und nur für alte Projekte enthalten, 
+           die sie möglicherweise noch verwenden.  
+           Neue Projekte sollten den „new“-Operator zusammen mit der 
+           Konstruktor-Syntax (Länge, Pin, Typ) verwenden.
 */
 void Adafruit_NeoPixel::updateType(neoPixelType t) {
   bool oldThreeBytesPerPixel = (wOffset == rOffset); // false if RGBW
@@ -377,15 +388,16 @@ extern "C" void k210Show(uint8_t pin, uint8_t *pixels, uint32_t numBytes,
                          boolean is800KHz);
 #endif // KENDRYTE_K210
 /*!
-  @brief 将RAM中的像素数据传输到NeoPixels。
-  @note 在大多数架构中，中断会被暂时禁用
-           为了实现正确的NeoPixel信号时序。这意味着
-           Arduino的millis()和micros()函数，这两个函数需要
-           中断，每当发生这种情况时，都会损失一小段时间间隔
-           函数被调用（每个RGB像素大约30微秒，40个像素为
-           RGBW像素）。这个问题没有简单的解决办法，但有一些
-           存在使用...的专门替代库或配套库
-           需要使用非常针对特定设备的外设来解决这个问题。
+  @brief   Überträgt die Pixeldaten aus dem RAM zu den NeoPixels.
+  @note    Auf den meisten Architekturen werden Interrupts vorübergehend deaktiviert, 
+           um das korrekte NeoPixel-Signal-Timing zu gewährleisten.  
+           Das bedeutet, dass die Arduino-Funktionen millis() und micros(), 
+           die auf Interrupts angewiesen sind, währenddessen kleine Zeitspannen 
+           verlieren. Pro RGB-Pixel beträgt dies ungefähr 30 Mikrosekunden, 
+           bei RGBW-Pixeln etwa 40 Mikrosekunden.  
+           Für dieses Problem gibt es keine einfache Lösung, allerdings existieren 
+           spezielle alternative oder ergänzende Bibliotheken, die sehr 
+           gerätespezifische Peripherie nutzen, um es zu umgehen.
 */
 void Adafruit_NeoPixel::show(void) {
 

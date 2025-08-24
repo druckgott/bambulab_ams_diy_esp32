@@ -50,7 +50,11 @@ float_t last_total_distance[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // 初始化退料开
 
 void MC_PULL_ONLINE_read()
 {
-    float *data = ADC_DMA_get_value();
+    //testdata:
+    float test_data[8] = { 1.6, 1.7, 1.6, 1.7, 1.6, 1.7, 1.6, 1.7 }; // optimale Werte
+    float *data = test_data; // Zeiger für bestehende Logik
+    //float *data = ADC_DMA_get_value();
+
     MC_PULL_stu_raw[3] = data[0];
     MC_ONLINE_key_stu_raw[3] = data[1];
     MC_PULL_stu_raw[2] = data[2];
@@ -444,10 +448,10 @@ void Motion_control_PWM_init()
     ledcSetup(PWM_CH3, PWM_FREQ, PWM_RES);
 
     // PWM-Kanäle auf Pins legen
-    ledcAttachPin(PWM0_PIN, PWM_CH0);
-    ledcAttachPin(PWM1_PIN, PWM_CH1);
-    ledcAttachPin(PWM2_PIN, PWM_CH2);
-    ledcAttachPin(PWM3_PIN, PWM_CH3);
+    ledcAttachPin(PWM0_PIN_LED, PWM_CH0);
+    ledcAttachPin(PWM1_PIN_LED, PWM_CH1);
+    ledcAttachPin(PWM2_PIN_LED, PWM_CH2);
+    ledcAttachPin(PWM3_PIN_LED, PWM_CH3);
 }
 
 void Motion_control_set_PWM(uint8_t CHx, int PWM)
