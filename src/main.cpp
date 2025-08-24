@@ -1,8 +1,11 @@
+//https://github.com/Bambu-Research-Group/Bambu-Bus
+
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-#include <WebSerial.h>
+//#include <WebSerial.h>
+#include <MycilaWebSerial.h>
 #include "wifimanager.h" //https://registry.platformio.org/libraries/martinverges/ESP32%20Wifi%20Manager/installation
 
 #define AMS_NUMBER      2
@@ -21,6 +24,7 @@ const char COMPILE_TIME[] = __TIME__;
 WIFIMANAGER WifiManager;
 // Async Webserver auf Port 80
 AsyncWebServer server(80);
+WebSerial webSerial;
 
 HardwareSerial amsSerial(2); // UART2
 
@@ -28,43 +32,34 @@ HardwareSerial amsSerial(2); // UART2
 void rs485SendEnable()   { digitalWrite(RS485_DE_RE_PIN, HIGH); Serial.println("[MAX485] Sende-Modus aktiviert"); }
 void rs485ReceiveEnable(){ digitalWrite(RS485_DE_RE_PIN, LOW);  Serial.println("[MAX485] Empfangs-Modus aktiviert"); }
 
-void recvMsg(uint8_t *data, size_t len){
-  WebSerial.println("Received Data...");
-  String d = "";
-  for(size_t i = 0; i < len; i++){
-    d += char(data[i]);
-  }
-  WebSerial.println(d);
-}
-
 void printPacket(const char* prefix, const uint8_t* buf, int len) {
   // Serial-Ausgabe
   Serial.print(prefix);
-  WebSerial.print(prefix);
+  webSerial.print(prefix);
 
   for (int i = 0; i < len; i++) {
     if (buf[i] < 16) {
       Serial.print("0");
-      WebSerial.print("0");
+      webSerial.print("0");
     }
     Serial.print(buf[i], HEX);
-    WebSerial.print(buf[i], HEX);
+    webSerial.print(buf[i], HEX);
     Serial.print(" ");
-    WebSerial.print(" ");
+    webSerial.print(" ");
   }
   Serial.println();
-  WebSerial.println();
+  webSerial.println();
 
   // ASCII-Ausgabe
   Serial.print("[ASCII] ");
-  WebSerial.print("[ASCII] ");
+  webSerial.print("[ASCII] ");
   for (int i = 0; i < len; i++) {
     char c = (buf[i] >= 32 && buf[i] <= 126) ? buf[i] : '.';
     Serial.print(c);
-    WebSerial.print(c);
+    webSerial.print(c);
   }
   Serial.println();
-  WebSerial.println();
+  webSerial.println();
 }
 
 void sendHeartbeat() {
@@ -170,8 +165,8 @@ void setup() {
   Serial.println("OTA bereit");
 
   // WebSerial starten
-  WebSerial.begin(&server);
-  WebSerial.msgCallback(recvMsg);
+  webSerial.onMessage([](const std::string& msg) { Serial.println(msg.c_str()); });
+  webSerial.begin(&server);
 
   // Async Webserver starten
   server.begin();
@@ -200,6 +195,46 @@ void loop() {
 
   // Prüfe, ob Daten vom AMS verfügbar sind
   if (amsSerial.available()) {
+    uint8_t rxbuf[128];
+    int len = amsSerial.readBytes(rxbuf, sizeof(rxbuf));
+
+    // Paketweise durch rxbuf gehen
+    int start = -1;
+    for (int i = 0; i < len - 1; i++) {
+      // Suche nach Startsequenz 0x0A 0xEA
+      if (rxbuf[i] == 0x0A && rxbuf[i + 1] == 0xEA) {
+        // Wenn ein früheres Startzeichen gefunden wurde, gib das vorherige Paket aus
+        if (start >= 0 && i > start) {
+          String hexLine = "→ Paket: ";
+          for (int j = start; j < i; j++) {
+            if (rxbuf[j] < 16) hexLine += "0";
+            hexLine += String(rxbuf[j], HEX) + " ";
+          }
+          webSerial.println(hexLine);
+        }
+        start = i; // neues Paket beginnt hier
+      }
+    }
+
+    // Letztes Paket (falls eins offen ist)
+    if (start >= 0 && start < len) {
+      String hexLine = "→ Paket: ";
+      for (int j = start; j < len; j++) {
+        if (rxbuf[j] < 16) hexLine += "0";
+        hexLine += String(rxbuf[j], HEX) + " ";
+      }
+      webSerial.println(hexLine);
+    }
+  }
+}
+
+/*
+void loop() {
+  // OTA prüfen
+  ArduinoOTA.handle();
+
+  // Prüfe, ob Daten vom AMS verfügbar sind
+  if (amsSerial.available()) {
       uint8_t rxbuf[128]; // Puffer auf 128 Bytes vergrößert
       int len = amsSerial.readBytes(rxbuf, sizeof(rxbuf)); // bis zu 128 Bytes lesen
       // Hex-Ausgabe
@@ -208,6 +243,7 @@ void loop() {
           if (rxbuf[i] < 16) hexLine += "0";
           hexLine += String(rxbuf[i], HEX) + " ";
       }
-      WebSerial.println(hexLine);
+      webSerial.println(hexLine);
   }
 }
+*/
