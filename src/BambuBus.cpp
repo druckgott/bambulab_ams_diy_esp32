@@ -6,7 +6,6 @@
 #include "driver/gpio.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
-#include "pins.h"
 
 CRC16 crc_16;
 CRC8 crc_8;

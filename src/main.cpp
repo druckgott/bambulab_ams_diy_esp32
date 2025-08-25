@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "main.h"
-#include "pins.h"
 
 #include "BambuBus.h"
 #include "Adafruit_NeoPixel.h"
@@ -68,6 +67,9 @@ extern void send_uart(const unsigned char *data, uint16_t length);
 
 void setup()
 {
+    //ota Webserial init
+    init_ota_webserial();
+
     // RGB-LEDs initialisieren
     RGB_init();
     // RGB-Anzeige aktualisieren
@@ -130,6 +132,9 @@ void Show_SYS_RGB(int BambuBUS_status)
 BambuBus_package_type is_first_run = BambuBus_package_type::NONE;
 void loop()
 {
+    //Arduino ota update
+    //ota_run();
+
     while (1)
     {
         BambuBus_package_type stu = BambuBus_run();

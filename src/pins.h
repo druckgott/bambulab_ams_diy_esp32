@@ -1,8 +1,4 @@
-// pins.h
-#ifndef PINS_H
-#define PINS_H
-
-#include <Arduino.h>       // für uint8_t, uint16_t etc.
+#include "main.h"
 
 #pragma once
 
@@ -87,8 +83,9 @@
 #define Debug_log_on
 #define Debug_log_baudrate 115200
 
+//OTA Task
+#define OTA_TASK_DELAY_MS 100  // Verzögerung für OTA-Task in Millisekunden
+
 // Globale Variablen (nur Deklaration!)
 extern uint8_t BambuBus_AMS_num;
 extern uint8_t AMS_humidity_wet;
-
-#endif // PINS_H

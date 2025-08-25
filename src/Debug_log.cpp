@@ -11,7 +11,6 @@ void Debug_log_init()
     // Serial1 initialisieren (8 Datenbits + gerade Parität + 1 Stopbit)
     //Serial.begin(DEBUG_BAUDRATE, SERIAL_8E1, DEBUG_RX_PIN, DEBUG_TX_PIN);
     Serial.begin(DEBUG_BAUDRATE, SERIAL_8E1);
-
     // Debug-Nachricht
     Serial.println("Debug UART ready");
 }
@@ -31,12 +30,20 @@ void Debug_log_write(const void *data)
 {
     const char *str = (const char *)data;
     Serial.write(str);
+    WebSerial.println(str);
 }
 
 void Debug_log_write_num(const void *data, int num)
 {
     const char *str = (const char *)data;
     Serial.write((const uint8_t *)str, num);
+
+    // WebSerial
+    char buffer[num + 1];        // temporärer String, +1 für null terminator
+    memcpy(buffer, str, num);
+    buffer[num] = '\0';          // null-terminieren
+    WebSerial.println(buffer);
+
 }
 
 #endif
