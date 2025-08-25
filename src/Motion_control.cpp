@@ -1,6 +1,5 @@
 #include "Motion_control.h"
 #include <driver/ledc.h>  // Für ESP32 PWM-Funktionen
-#include "pins.h"
 
 // Kanalzuordnung: 8 PWM-Kanäle
 static const ledc_channel_t pwm_channels[8] = {

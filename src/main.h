@@ -8,6 +8,7 @@
 #include "time64.h"
 #include "many_soft_AS5600.h"
 #include "ADC_DMA.h"
+#include "pins.h"
 
 #define delay_any_us(time)                                                 \
     {                                                                      \

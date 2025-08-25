@@ -1,10 +1,6 @@
-// pins.h
-#ifndef PINS_H
-#define PINS_H
-
-#include <Arduino.h>       // für uint8_t, uint16_t etc.
-
 #pragma once
+
+#include "main.h"
 
 //UART PORT = sagt welcher UART im Chip (Controller) benutzt wird.
 //TXD_PIN/RXD_PIN = sagt welche physischen GPIOs nach außen verbunden werden.
@@ -90,5 +86,3 @@
 // Globale Variablen (nur Deklaration!)
 extern uint8_t BambuBus_AMS_num;
 extern uint8_t AMS_humidity_wet;
-
-#endif // PINS_H

@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "main.h"
-#include "pins.h"
 
 #include "BambuBus.h"
 #include "Adafruit_NeoPixel.h"
