@@ -1,4 +1,24 @@
+// pins.h
+#ifndef PINS_H
+#define PINS_H
+
+#include <Arduino.h>       // für uint8_t, uint16_t etc.
+
 #pragma once
+
+//UART PORT = sagt welcher UART im Chip (Controller) benutzt wird.
+//TXD_PIN/RXD_PIN = sagt welche physischen GPIOs nach außen verbunden werden.
+//Ohne die Kombination geht’s nicht:
+//Nur UART_PORT → der ESP32 weiß nicht, auf welchen Pins er senden/empfangen soll.
+//Nur TXD_PIN/RXD_PIN → du hast keine Hardware-UART ausgewählt.
+//Bambulab Verbindung
+#define BAMBU_UART_BAUD   1250000
+#define UART_PORT   UART_NUM_1 //USB --> UART_NUM_0, TX2/RX2 --> UART_NUM_1
+// wähle passende Pins am 32-Pin-ESP32
+#define TXD_PIN     GPIO_NUM_17 //TX Pin 17
+#define RXD_PIN     GPIO_NUM_16 //RX Pin 16
+//RS485 PIN
+#define DE_PIN      GPIO_NUM_5 //PIN 5
 
 // Testweise 8 LEDs
 #define LED_NUM 2
@@ -64,16 +84,19 @@
 #define ADC1_CH6_PIN 34
 #define ADC1_CH7_PIN 35
 
-
 #define Debug_log_on
 #define Debug_log_baudrate 115200
 
 #ifdef Debug_log_on
-
 // Wähle UART-Port und Pins
 #define DEBUG_UART_PORT 1         // 0 = Serial, 1 = Serial1, 2 = Serial2
 #define DEBUG_TX_PIN    17        // TX GPIO
 #define DEBUG_RX_PIN    16        // RX GPIO (optional)
 #define DEBUG_BAUDRATE  115200
-
 #endif
+
+// Globale Variablen (nur Deklaration!)
+extern uint8_t BambuBus_AMS_num;
+extern uint8_t AMS_humidity_wet;
+
+#endif // PINS_H

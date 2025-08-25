@@ -28,24 +28,25 @@ void MC_PULL_ONLINE_init()
 float MC_PULL_stu_raw[4] = {0, 0, 0, 0};
 int MC_PULL_stu[4] = {0, 0, 0, 0};
 float MC_ONLINE_key_stu_raw[4] = {0, 0, 0, 0};
-// 0-离线 1-在线双微动触发 2-外触发 3-内触发
+// 0 – offline, 1 – online (doppelte Mikroschalter-Auslösung), 
+// 2 – externe Auslösung, 3 – interne Auslösung
 int MC_ONLINE_key_stu[4] = {0, 0, 0, 0};
 
-// 电压控制相关常量
-float PULL_voltage_up = 1.85f;   // 状态 压力高 红灯
-float PULL_voltage_down = 1.45f; // 状态 压力低 蓝灯
+// Konstanten zur Spannungssteuerung
+float PULL_voltage_up = 1.85f;   // Zustand: hoher Druck → rote LED
+float PULL_voltage_down = 1.45f; // Zustand: niedriger Druck → blaue LED
 #define PULL_VOLTAGE_SEND_MAX 1.7f
-// 微动触发控制相关常量
+// Konstanten zur Steuerung der Mikroschalter-Auslösung
 bool Assist_send_filament[4] = {false, false, false, false};
-bool pull_state_old = false; // 上次触发状态——True：未触发，False：进料完成
+bool pull_state_old = false; // Letzter Auslösezustand — True: nicht ausgelöst, False: Vorschub abgeschlossen
 bool is_backing_out = false;
 uint64_t Assist_filament_time[4] = {0, 0, 0, 0};
-uint64_t Assist_send_time = 1200; // 仅触发外侧后，送料时长
-// 退料距离 单位 MM
-float_t P1X_OUT_filament_meters = 200.0f; // 内置200mm 外置700mm
-float_t last_total_distance[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // 初始化退料开始时的距离
-// bool filament_channel_inserted[4]={false,false,false,false};//通道是否插入
-// 使用双微动
+uint64_t Assist_send_time = 1200; // Dauer des Vorschubs, nachdem nur der äußere Auslöser betätigt wurde
+// Rückförderstrecke in Millimetern (MM)
+float_t P1X_OUT_filament_meters = 200.0f;       // Eingebaut: 200 mm, extern: 700 mm
+float_t last_total_distance[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // Initialisierte Entfernung beim Start des Rückzugs
+// bool filament_channel_inserted[4]={false,false,false,false}; // Ob der Kanal eingesetzt ist
+// Verwendung von doppelten Mikroschaltern
 #define is_two false
 
 void MC_PULL_ONLINE_read()

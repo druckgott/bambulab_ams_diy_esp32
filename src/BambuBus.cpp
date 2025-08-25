@@ -1,14 +1,19 @@
 #include "BambuBus.h"
 #include "CRC16.h"
 #include "CRC8.h"
+#include <stdio.h>
+#include "driver/uart.h"
+#include "driver/gpio.h"
+#include "freertos/queue.h"
+#include "freertos/task.h"
+#include "pins.h"
+
 CRC16 crc_16;
 CRC8 crc_8;
 
 uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
-uint8_t BambuBus_AMS_num = 0; // 0~3 代表被识别为 A B C D
-uint8_t AMS_humidity_wet = 12; // 0~100(百分比湿度)
 
 struct _filament
 {
@@ -240,19 +245,6 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
     }
 }
 
-#include <stdio.h>
-#include "driver/uart.h"
-#include "driver/gpio.h"
-#include "freertos/queue.h"
-#include "freertos/task.h"
-
-#define UART_PORT   UART_NUM_1
-
-// wähle passende Pins am 32-Pin-ESP32
-#define TXD_PIN     (GPIO_NUM_9)
-#define RXD_PIN     (GPIO_NUM_10)
-#define DE_PIN      (GPIO_NUM_12)
-
 // Event-Queue für UART-Interrupts
 static QueueHandle_t uart_queue;
 
@@ -266,6 +258,14 @@ void send_uart(const uint8_t *data, size_t length)
     uart_wait_tx_done(UART_PORT, pdMS_TO_TICKS(100)); // Warten bis fertig
     gpio_set_level(DE_PIN, 0);   // RS485 DE aus -> zurück auf Empfang
 }
+
+//simple methode:
+/*void send_uart(const uint8_t *data, size_t length)
+{
+    gpio_set_level(DE_PIN, 1);                 // Senden starten
+    uart_write_bytes(UART_PORT, (const char *)data, length);
+    gpio_set_level(DE_PIN, 0);                 // Senden fertig
+}*/
 
 static void uart_event_task(void *pvParameters)
 {
@@ -282,19 +282,11 @@ static void uart_event_task(void *pvParameters)
     }
 }
 
-//simple methode:
-/*void send_uart(const uint8_t *data, size_t length)
-{
-    gpio_set_level(DE_PIN, 1);                 // Senden starten
-    uart_write_bytes(UART_PORT, (const char *)data, length);
-    gpio_set_level(DE_PIN, 0);                 // Senden fertig
-}*/
-
 void BambuBUS_UART_Init()
 {
     // UART Konfiguration (Arduino-ESP32)
     const uart_config_t uart_config = {
-        .baud_rate = 1250000,
+        .baud_rate = BAMBU_UART_BAUD,
         .data_bits = UART_DATA_8_BITS,     // 9-Bit UART geht hier nicht
         .parity    = UART_PARITY_EVEN,
         .stop_bits = UART_STOP_BITS_1,
@@ -428,7 +420,7 @@ void package_send_with_crc(uint8_t *data, int data_length)
 
 uint8_t packge_send_buf[1000];
 
-#pragma pack(push, 1) // 将结构体按1字节对齐
+#pragma pack(push, 1) // Strukturen auf 1-Byte-Grenze ausrichten
 struct long_packge_data
 {
     uint16_t package_number;
@@ -440,7 +432,7 @@ struct long_packge_data
     uint8_t *datas;
     uint16_t data_length;
 };
-#pragma pack(pop) // 恢复默认对齐
+#pragma pack(pop) // Standard-Ausrichtung wiederherstellen
 
 void Bambubus_long_package_send(long_packge_data *data)
 {
@@ -933,25 +925,25 @@ void online_detect_init()
 }
 void send_for_online_detect(unsigned char *buf, int length)
 {
-    if ((buf[5] == 0x00)) // 注册AMS序号用
+    if ((buf[5] == 0x00)) // Wird zur Registrierung der AMS-Nummer verwendet
     {
         if (have_registered == true)
             return;
         int i = BambuBus_AMS_num;
         while (i--)
         {
-            delay(1); // 将不同序号的AMS数据包上分割开来
+            delay(1); // Trennt AMS-Datenpakete mit unterschiedlichen Nummern
         }
-        online_detect_res[0] = 0x3D;             // 帧头
-        online_detect_res[1] = 0xC0;             // flag
-        online_detect_res[2] = 29;               // 数据长度-29字节
+        online_detect_res[0] = 0x3D;             // Frame-Kopf
+        online_detect_res[1] = 0xC0;             // Flag
+        online_detect_res[2] = 29;               // Datenlänge – 29 Bytes
         online_detect_res[3] = 0xB4;             // CRC8
-        online_detect_res[4] = 0x05;             // 命令号
-        online_detect_res[5] = 0x00;             // 命令号
-        online_detect_res[6] = BambuBus_AMS_num; // AMS号码
+        online_detect_res[4] = 0x05;             // Befehlsnummer
+        online_detect_res[5] = 0x00;             // Befehlsnummer
+        online_detect_res[6] = BambuBus_AMS_num; // AMS-Nummer
 
-        online_detect_res[7] = BambuBus_AMS_num; // 本来是一个序列号，这里覆盖为AMS号码
-        online_detect_res[8] = BambuBus_AMS_num; // 本来是一个序列号，这里覆盖为AMS号码
+        online_detect_res[7] = BambuBus_AMS_num; // Eigentlich eine Seriennummer, hier durch AMS-Nummer ersetzt
+        online_detect_res[8] = BambuBus_AMS_num; // Eigentlich eine Seriennummer, hier durch AMS-Nummer ersetzt
 
         package_send_with_crc(online_detect_res, sizeof(online_detect_res));
     }
@@ -959,15 +951,15 @@ void send_for_online_detect(unsigned char *buf, int length)
     if ((buf[5] == 0x01) && (buf[6] == BambuBus_AMS_num))
     {
 
-        online_detect_res[0] = 0x3D;                                         // 帧头
-        online_detect_res[1] = 0xC0;                                         // flag
-        online_detect_res[2] = 29;                                           // 数据长度-29字节
+        online_detect_res[0] = 0x3D;                                         // Frame-Kopf
+        online_detect_res[1] = 0xC0;                                         // Flag
+        online_detect_res[2] = 29;                                           // Datenlänge – 29 Bytes
         online_detect_res[3] = 0xB4;                                         // CRC8
-        online_detect_res[4] = 0x05;                                         // 命令号
-        online_detect_res[5] = 0x01;                                         // 命令号
-        online_detect_res[6] = BambuBus_AMS_num;                             // AMS号码
-        memcpy(online_detect_res + 7, buf + 7, 20);                          // 复制AMS注册号
-        package_send_with_crc(online_detect_res, sizeof(online_detect_res)); // 发送数据
+        online_detect_res[4] = 0x05;                                         // Befehlsnummer
+        online_detect_res[5] = 0x01;                                         // Befehlsnummer
+        online_detect_res[6] = BambuBus_AMS_num;                             // AMS-Nummer
+        memcpy(online_detect_res + 7, buf + 7, 20);                          // AMS-Registrierungsnummer kopieren
+        package_send_with_crc(online_detect_res, sizeof(online_detect_res)); // Datenpaket mit CRC senden
 
         if (have_registered == false)
             if (memcmp(online_detect_res + 7, buf + 7, 20) == 0)
@@ -1046,7 +1038,7 @@ void send_for_long_packge_filament(unsigned char *buf, int length)
     memcpy(long_packge_filament + 19, data_save.filament[filament_num].ID, sizeof(data_save.filament[filament_num].ID));
     memcpy(long_packge_filament + 27, data_save.filament[filament_num].name, sizeof(data_save.filament[filament_num].name));
 
-    // 更新全局颜色变量
+    // Globale Farbvariablen aktualisieren
     channel_colors[filament_num][0] = data_save.filament[filament_num].color_R;
     channel_colors[filament_num][1] = data_save.filament[filament_num].color_G;
     channel_colors[filament_num][2] = data_save.filament[filament_num].color_B;
