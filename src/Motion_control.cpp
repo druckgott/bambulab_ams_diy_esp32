@@ -138,7 +138,7 @@ struct alignas(4) Motion_control_save_struct
 } Motion_control_data_save;
 
 #define Motion_control_save_flash_addr ((uint32_t)0x0800E000)
-bool Motion_control_read()
+/*bool Motion_control_read()
 {
     Motion_control_save_struct *ptr = (Motion_control_save_struct *)(Motion_control_save_flash_addr);
     if (ptr->check == 0x40614061)
@@ -147,7 +147,22 @@ bool Motion_control_read()
         return true;
     }
     return false;
+}*/
+
+//Flash speicher muss noch eingebaut werden, erstmal fake werte
+bool Motion_control_read()
+{
+    // Initialisiere direkt feste Werte
+    Motion_control_data_save.Motion_control_dir[0] = 1;  // Beispielwerte
+    Motion_control_data_save.Motion_control_dir[1] = -1;
+    Motion_control_data_save.Motion_control_dir[2] = 0;
+    Motion_control_data_save.Motion_control_dir[3] = 1;
+
+    Motion_control_data_save.check = 0x40614061; // unverändert
+
+    return true;  // immer erfolgreich
 }
+
 void Motion_control_save()
 {
     //Flash_saves(&Motion_control_data_save, sizeof(Motion_control_save_struct), Motion_control_save_flash_addr);

@@ -30,7 +30,7 @@
 #define PWM3_PIN_LED 14
 
 //Mainboard PIN
-#define PWM6_PIN_LED 99
+#define PWM6_PIN_LED 13
 
 // Beispiel GPIO-Zuordnung für 4 AS5600 I2C-Geräte
 // AS5600
@@ -43,9 +43,9 @@
 #define AS5600_3_SCL 18
 
 #define AS5600_0_SDA 23
-#define AS5600_1_SDA 5
-#define AS5600_2_SDA 17
-#define AS5600_3_SDA 16
+#define AS5600_1_SDA 12
+#define AS5600_2_SDA 27
+#define AS5600_3_SDA 33
 
 // PWM-Kanäle (ESP32 hat max. 16 Kanäle, 0-15)
 //vermutlich 8 Motoren? DC Motoren
@@ -62,11 +62,11 @@
 #define PWM_CH0_PIN 15
 #define PWM_CH1_PIN 2
 #define PWM_CH2_PIN 4
-#define PWM_CH3_PIN 5
-#define PWM_CH4_PIN 18
-#define PWM_CH5_PIN 19
-#define PWM_CH6_PIN 21
-#define PWM_CH7_PIN 22
+#define PWM_CH3_PIN 15  
+#define PWM_CH4_PIN 12   // statt 18 (GPIO2 vorsichtig, Boot-Pin)
+#define PWM_CH5_PIN 4   
+#define PWM_CH6_PIN 32  
+#define PWM_CH7_PIN 35 
 
 // ADC-Pins für ESP32 (ADC1), gefilterten Spannungen
 //Initialisiert 8 ADC-Kanäle des ESP32 mit 12-Bit Auflösung und ~3.3 V Messbereich.
@@ -86,14 +86,6 @@
 
 #define Debug_log_on
 #define Debug_log_baudrate 115200
-
-#ifdef Debug_log_on
-// Wähle UART-Port und Pins
-#define DEBUG_UART_PORT 1         // 0 = Serial, 1 = Serial1, 2 = Serial2
-#define DEBUG_TX_PIN    17        // TX GPIO
-#define DEBUG_RX_PIN    16        // RX GPIO (optional)
-#define DEBUG_BAUDRATE  115200
-#endif
 
 // Globale Variablen (nur Deklaration!)
 extern uint8_t BambuBus_AMS_num;

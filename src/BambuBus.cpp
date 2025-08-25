@@ -46,7 +46,7 @@ struct alignas(4) flash_save_struct
     uint32_t check = 0x40614061;
 } data_save;
 
-bool Bambubus_read()
+/*bool Bambubus_read()
 {
     flash_save_struct *ptr = (flash_save_struct *)(use_flash_addr);
     if ((ptr->check == 0x40614061) && (ptr->version == Bambubus_version))
@@ -55,7 +55,23 @@ bool Bambubus_read()
         return true;
     }
     return false;
+}*/
+
+// Flashzugriff ausschalten erstmal fake werte setzen
+bool Bambubus_read()
+{
+    // Hier können default-Werte gesetzt werden
+    for (int i = 0; i < 4; i++)
+    {
+        data_save.filament[i].meters = 3;
+        data_save.filament[i].motion_set = AMS_filament_motion::idle;
+        data_save.filament[i].statu = AMS_filament_stu::online;
+    }
+    data_save.BambuBus_now_filament_num = 0xFF;
+    data_save.filament_use_flag = 0x00;
+    return true; // immer erfolgreich
 }
+
 bool Bambubus_need_to_save = false;
 void Bambubus_set_need_to_save()
 {
@@ -185,6 +201,11 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
     static uint8_t data_length_index;
     static uint8_t data_CRC8_index;
     unsigned char data = _RX_IRQ_data;
+
+   // --- Byteweise Debug ---
+    char buf[32];
+    sprintf(buf, "RX_IRQ got byte: %d  index: %d\n", data, _index);
+    DEBUG_MY(buf);
 
     if (_index == 0) // waitting for first data
     {
@@ -1270,7 +1291,7 @@ BambuBus_package_type BambuBus_run()
         time_set = get_time64() + 1000;
         Bambubus_need_to_save = false;
     }
-
+    
     // NFC_detect_run();
     return stu;
 }
