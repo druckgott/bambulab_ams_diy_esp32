@@ -202,65 +202,61 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
     static uint8_t data_CRC8_index;
     unsigned char data = _RX_IRQ_data;
 
-   // --- Byteweise Debug ---
-    char buf[32];
-    sprintf(buf, "RX_IRQ got byte: %d  index: %d\n", data, _index);
-    DEBUG_MY(buf);
-
-    if (_index == 0) // waitting for first data
+    if (_index == 0) // waiting for first data
     {
-        if (data == 0x3D) // 0x3D-start
+        if (data == 0x3D) // start byte
         {
             BambuBus_data_buf[0] = 0x3D;
-            _RX_IRQ_crcx.restart();       // reset CRC8
-            _RX_IRQ_crcx.add(0x3D);       // add 0x3D in CRC8
-            data_length_index = 4;        // unknow package type,init length data to 4
-            length = data_CRC8_index = 6; // unknow package length,,init package length to 6
+            _RX_IRQ_crcx.restart();
+            _RX_IRQ_crcx.add(0x3D);
+            data_length_index = 4;
+            length = data_CRC8_index = 6;
             _index = 1;
         }
         return;
     }
-    else // have 0x3D,normal data
+    else
     {
         BambuBus_data_buf[_index] = data;
-        if (_index == 1) // package type byte
+
+        if (_index == 1) // package type
         {
-            if (data & 0x80) // short head package
-            {
-                data_length_index = 2;
-                data_CRC8_index = 3;
-            }
-            else // long head package
-            {
-                data_length_index = 4;
-                data_CRC8_index = 6;
-            }
+            if (data & 0x80) { data_length_index = 2; data_CRC8_index = 3; }
+            else { data_length_index = 4; data_CRC8_index = 6; }
         }
-        if (_index == data_length_index) // the length byte
+
+        if (_index == data_length_index) length = data;
+
+        if (_index < data_CRC8_index) _RX_IRQ_crcx.add(data);
+        else if (_index == data_CRC8_index) 
         {
-            length = data;
-        }
-        if (_index < data_CRC8_index) // before CRC8 byte,add data
-        {
-            _RX_IRQ_crcx.add(data);
-        }
-        else if (_index == data_CRC8_index) // the CRC8 byte,check
-        {
-            if (data != _RX_IRQ_crcx.calc()) // check error,return to waiting 0x3D
+            if (data != _RX_IRQ_crcx.calc())
             {
+                DEBUG_MY("CRC ERROR\n");
                 _index = 0;
                 return;
             }
         }
+
+        // ++_index **vor Debug**, damit der Debugwert stimmt
         ++_index;
-        if (_index >= length) // recv over,copy package data
+
+        char buf[64];
+        sprintf(buf, "RX_IRQ byte: 0x%02X index: %d  length_idx: %d\n", data, _index, data_length_index);
+        DEBUG_MY(buf);
+
+
+        if (_index >= length) // paket komplett
         {
-            _index = 0;
             memcpy(buf_X, BambuBus_data_buf, length);
             BambuBus_have_data = length;
+            DEBUG_MY("PACKAGE COMPLETE\n");
+            _index = 0;
         }
-        if (_index >= 999) // recv error,reset
+
+        if (_index >= 999) // recv error
         {
+            DEBUG_MY("RX_IRQ RESET\n");
             _index = 0;
         }
     }
