@@ -488,7 +488,7 @@ void send_uart(const uint8_t *data, size_t length)
     gpio_set_level(DE_PIN, 0);                 // Senden fertig
 }*/
 
-static void uart_event_task(void *pvParameters)
+/*static void uart_event_task(void *pvParameters)
 {
     uart_event_t event;
     uint8_t data[2];
@@ -501,9 +501,96 @@ static void uart_event_task(void *pvParameters)
             }
         }
     }
+}*/
+
+static void uart_event_task(void *pvParameters)
+{
+    uart_event_t event;
+    uint8_t data[2]; // kleines Puffer, wie vorher
+
+    for (;;) {
+        if (xQueueReceive(uart_queue, (void *)&event, portMAX_DELAY)) {
+            if (event.type == UART_DATA) {
+                // kleine Chunks lesen
+                int len = uart_read_bytes(UART_PORT, data, sizeof(data), 20 / portTICK_PERIOD_MS);
+
+                char buf[128];
+                sprintf(buf, "UART_EVENT: %d bytes gelesen\n", len);
+                DEBUG_MY(buf);
+
+                // DE_PIN Level prüfen
+                int de_level = gpio_get_level(DE_PIN);
+                sprintf(buf, "DE_PIN level: %d\n", de_level);
+                DEBUG_MY(buf);
+
+                // jedes Byte debuggen und an RX_IRQ weitergeben
+                for (int i = 0; i < len; i++) {
+                    sprintf(buf, "RAW[%02d] = 0x%02X\n", i, data[i]);
+                    DEBUG_MY(buf);
+                    RX_IRQ(data[i]);
+                }
+            } else {
+                // optional: andere Event-Typen ausgeben
+                char buf[64];
+                sprintf(buf, "UART event type: %d\n", event.type);
+                DEBUG_MY(buf);
+            }
+        }
+    }
 }
 
 void BambuBUS_UART_Init()
+{
+    DEBUG_MY("BambuBUS_UART_Init: UART-Konfiguration starten\n");
+
+    const uart_config_t uart_config = {
+        .baud_rate = BAMBU_UART_BAUD,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_EVEN,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+    };
+    uart_param_config(UART_PORT, &uart_config);
+    uart_set_pin(UART_PORT, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_driver_install(UART_PORT, 2048, 0, 20, &uart_queue, 0);
+
+    // RS485 DE-Pin konfigurieren
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << DE_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
+    gpio_set_level(DE_PIN, 0); // Empfang ermöglichen
+    DEBUG_MY("DE_PIN auf 0 gesetzt (Empfang)\n");
+
+    xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
+
+    // Kleiner Loopback-/Bus-Test: sende 0xAA, warte und prüfe RX
+    {
+        char buf[128];
+        uint8_t test_byte = 0xAA;
+        gpio_set_level(DE_PIN, 1); // sende aktivieren
+        int sent = uart_write_bytes(UART_PORT, (const char*)&test_byte, 1);
+        uart_wait_tx_done(UART_PORT, pdMS_TO_TICKS(100)); // sicherstellen, dass gesendet
+        gpio_set_level(DE_PIN, 0); // zurück in Empfang
+        sprintf(buf, "Testbyte gesendet: 0x%02X, Bytes gesendet: %d\n", test_byte, sent);
+        DEBUG_MY(buf);
+
+        // ein bisschen länger warten, damit der event_task es lesen kann
+        vTaskDelay(pdMS_TO_TICKS(200));
+
+        // Prüfe, ob irgendein Byte jetzt im rx buffer liegt (debug only)
+        size_t avail = 0;
+        uart_get_buffered_data_len(UART_PORT, &avail);
+        sprintf(buf, "UART buffered data len after test: %u\n", (unsigned)avail);
+        DEBUG_MY(buf);
+    }
+}
+
+/*void BambuBUS_UART_Init()
 {
     // UART Konfiguration (Arduino-ESP32)
     const uart_config_t uart_config = {
@@ -537,7 +624,7 @@ void BambuBUS_UART_Init()
 
     // Task starten, die UART-Events (Interrupts) behandelt
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
-}
+}*/
 
 void BambuBus_init()
 {
