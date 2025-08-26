@@ -7,6 +7,7 @@ const char COMPILE_TIME[] = __TIME__;
 WIFIMANAGER WifiManager;
 // Async Webserver auf Port 80
 AsyncWebServer server(80);
+WebSerial webSerial;
 
 void otaTask(void *pvParameters) {
   for (;;) {
@@ -48,8 +49,10 @@ void init_ota_webserial() {
   // Reboot-Handler
   server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
       request->send(200, "text/plain", "ESP wird neu gestartet...");
-      delay(100); // Kurze Pause, damit die Antwort noch gesendet wird
-      ESP.restart(); // ESP32 Neustart
+      // Restart mit Verzögerung
+      esp_register_shutdown_handler([]() {
+          ESP.restart();
+      });
   });
 
    ArduinoOTA
@@ -90,7 +93,10 @@ void init_ota_webserial() {
   );
 
   // WebSerial starten
-  WebSerial.begin(&server);
+  //WebSerial.begin(&server);
+  webSerial.onMessage([](const std::string& msg) { Serial.println(msg.c_str()); });
+  webSerial.begin(&server);
+  webSerial.setBuffer(100);
 
   // Async Webserver starten
   server.begin();

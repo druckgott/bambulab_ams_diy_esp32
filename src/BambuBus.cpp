@@ -7,6 +7,12 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+#define RX_IRQ_CRC8_POLY     0x39
+#define RX_IRQ_CRC8_INIT     0x66
+#define RX_IRQ_CRC8_XOROUT   0x00
+#define RX_IRQ_CRC8_REFIN    false
+#define RX_IRQ_CRC8_REFOUT   false
+
 CRC16 crc_16;
 CRC8 crc_8;
 
@@ -15,7 +21,8 @@ int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
 
 uint8_t buf_X[1000];
-CRC8 _RX_IRQ_crcx(0x39, 0x66, 0x00, false, false); //Angeblich richtige version
+CRC8 _RX_IRQ_crcx(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
+//CRC8 _RX_IRQ_crcx(0x39, 0x66, 0x00, false, false); //Angeblich richtige version
 //CRC8 _RX_IRQ_crcx(0x39, 0x00, 0x00, true, true); //neues Update aufgrund analyse
 
 struct _filament
@@ -236,6 +243,61 @@ void testBambuBusCRC() {
         }
     }
 }
+
+/*void RX_IRQ(uint8_t data)
+{
+    static int index = 0;
+    static int length = 0;
+    static uint8_t flag = 0;
+
+    BambuBus_data_buf[index] = data;
+
+    if (index == 0) {
+        if (data != 0x3D) {   // falsches Startbyte
+            DEBUG_MY("Falsches Startbyte, reset\n");
+            index = 0;
+            return;
+        }
+    }
+    else if (index == 1) {
+        flag = data;   // Paketflag
+    }
+    else if (index == 2) {
+        length = data;   // Low-Byte Länge
+    }
+    else if (index == 3 && (flag < 0x80)) {
+        length |= (data << 8);  // High-Byte Länge bei Long-Paket
+    }
+
+    index++;
+
+    if (length > 0 && index == length) {   // Paket komplett
+        memcpy(buf_X, BambuBus_data_buf, length);
+        BambuBus_have_data = length;
+
+        char buf[256];
+        sprintf(buf, "=== Paketübersicht ===\nStartbyte: 0x%02X\nPakettyp/Flag: 0x%02X\nLength: %d\nPayload: ",
+                BambuBus_data_buf[0], BambuBus_data_buf[1], length);
+        DEBUG_MY(buf);
+
+        // Payload ausgeben (ohne Start/Flag/Length)
+        for (int i = 2; i < length; i++) {
+            sprintf(buf, "[%d] 0x%02X ", i, BambuBus_data_buf[i]);
+            DEBUG_MY(buf);
+        }
+
+        DEBUG_MY("\nPACKAGE COMPLETE\n");
+
+        index = 0;  // Reset für nächstes Paket
+        length = 0;
+    }
+
+    if (index >= 200) { // failsafe
+        DEBUG_MY("RX_IRQ RESET (overflow)\n");
+        index = 0;
+        length = 0;
+    }
+}*/
 
 void inline RX_IRQ(unsigned char _RX_IRQ_data)
 {
@@ -480,7 +542,8 @@ void BambuBUS_UART_Init()
 void BambuBus_init()
 {
     bool _init_ready = Bambubus_read();
-    crc_8.reset(0x39, 0x66, 0, false, false);
+    //crc_8.reset(0x39, 0x66, 0, false, false);
+    crc_8.reset(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
     crc_16.reset(0x1021, 0x913D, 0, false, false);
 
     if (_init_ready)

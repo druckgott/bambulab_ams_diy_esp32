@@ -30,7 +30,7 @@ void Debug_log_write(const void *data)
 {
     const char *str = (const char *)data;
     Serial.write(str);
-    WebSerial.println(str);
+    webSerial.println(str);
 }
 
 void Debug_log_write_num(const void *data, int num)
@@ -42,7 +42,7 @@ void Debug_log_write_num(const void *data, int num)
     char buffer[num + 1];        // temporärer String, +1 für null terminator
     memcpy(buffer, str, num);
     buffer[num] = '\0';          // null-terminieren
-    WebSerial.println(buffer);
+    webSerial.println(buffer);
 
 }
 
