@@ -151,15 +151,16 @@ struct alignas(4) Motion_control_save_struct
 //Flash speicher muss noch eingebaut werden, erstmal fake werte
 bool Motion_control_read()
 {
-    // Initialisiere direkt feste Werte
-    Motion_control_data_save.Motion_control_dir[0] = 1;  // Beispielwerte
-    Motion_control_data_save.Motion_control_dir[1] = -1;
-    Motion_control_data_save.Motion_control_dir[2] = 0;
-    Motion_control_data_save.Motion_control_dir[3] = 1;
+    // Beispielhafte Richtungen der Achsen
+    Motion_control_data_save.Motion_control_dir[0] = 1;   // X-Achse vorwärts
+    Motion_control_data_save.Motion_control_dir[1] = -1;  // Y-Achse rückwärts
+    Motion_control_data_save.Motion_control_dir[2] = 0;   // Z-Achse stillstehend
+    Motion_control_data_save.Motion_control_dir[3] = 1;   // Extruder vorwärts
 
-    Motion_control_data_save.check = 0x40614061; // unverändert
+    // Check-Wert setzen, damit der Aufruf als „erfolgreich“ erkannt wird
+    Motion_control_data_save.check = 0x40614061;
 
-    return true;  // immer erfolgreich
+    return true;  // Immer erfolgreich
 }
 
 void Motion_control_save()

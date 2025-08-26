@@ -37,12 +37,21 @@ void init_ota_webserial() {
     msg += "<li><a href=\"/wifi\">WiFi Configuration Panel</a></li>";
     msg += "<li><a href=\"/api/wifi/status\">WiFi Status (JSON API)</a></li>";
     msg += "<li><a href=\"/api/wifi/configlist\">Saved Networks (JSON API)</a></li>";
+    msg += "<br>";
+    msg += "<li><a href=\"/reboot\">ESP neu starten</a></li>";
     msg += "</ul>";
 
     msg += "</body></html>";
     request->send(200, "text/html", msg);
   });  
   
+  // Reboot-Handler
+  server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(200, "text/plain", "ESP wird neu gestartet...");
+      delay(100); // Kurze Pause, damit die Antwort noch gesendet wird
+      ESP.restart(); // ESP32 Neustart
+  });
+
    ArduinoOTA
     .onStart([]() {
       String type;

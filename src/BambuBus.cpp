@@ -14,6 +14,10 @@ uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
 
+uint8_t buf_X[1000];
+CRC8 _RX_IRQ_crcx(0x39, 0x66, 0x00, false, false); //Angeblich richtige version
+//CRC8 _RX_IRQ_crcx(0x39, 0x00, 0x00, true, true); //neues Update aufgrund analyse
+
 struct _filament
 {
     // AMS statu
@@ -56,18 +60,23 @@ struct alignas(4) flash_save_struct
     return false;
 }*/
 
-// Flashzugriff ausschalten erstmal fake werte setzen
 bool Bambubus_read()
 {
-    // Hier können default-Werte gesetzt werden
+    // Fake Filament-Werte setzen
     for (int i = 0; i < 4; i++)
     {
-        data_save.filament[i].meters = 3;
-        data_save.filament[i].motion_set = AMS_filament_motion::idle;
-        data_save.filament[i].statu = AMS_filament_stu::online;
+        data_save.filament[i].meters = 3;                      // 3 Meter Beispiel
+        data_save.filament[i].motion_set = AMS_filament_motion::idle; // idle
+        data_save.filament[i].statu = AMS_filament_stu::online;      // online
     }
-    data_save.BambuBus_now_filament_num = 0xFF;
-    data_save.filament_use_flag = 0x00;
+
+    data_save.BambuBus_now_filament_num = 0xFF; // keine aktive Spule
+    data_save.filament_use_flag = 0x00;        // Flag zurücksetzen
+
+    // Version & Check wie erwartet setzen
+    data_save.check = 0x40614061;
+    data_save.version = Bambubus_version;
+
     return true; // immer erfolgreich
 }
 
@@ -191,9 +200,126 @@ bool BambuBus_if_on_print()
     }
     return on_print;
 }
-uint8_t buf_X[1000];
-CRC8 _RX_IRQ_crcx(0x39, 0x66, 0x00, false, false);
+
+void testBambuBusCRC() {
+    uint8_t paket[] = { 0xFD, 0xFF }; // Beispielbytes ohne Startbyte
+    uint8_t expected_crc = 0x05;
+
+    bool options[2] = {false, true};
+
+    DEBUG_MY("Teste alle CRC8-Konfigurationen:\n");
+    for (int refIn = 0; refIn <= 1; refIn++) {
+        for (int refOut = 0; refOut <= 1; refOut++) {
+            CRC8 crcCalc(0x39, 0x00, 0x00, options[refIn], options[refOut]);
+            crcCalc.restart();
+
+            for (int i = 0; i < sizeof(paket); i++) {
+                crcCalc.add(paket[i]);
+
+                // DEBUG-Hinweis pro Byte
+                char buf[64];
+                sprintf(buf, "RefIn=%s RefOut=%s: Add byte 0x%02X to CRC\n",
+                        options[refIn] ? "true" : "false",
+                        options[refOut] ? "true" : "false",
+                        paket[i]);
+                DEBUG_MY(buf);
+            }
+
+            // CRC berechnen und Ergebnis ausgeben
+            uint8_t crc = crcCalc.calc();
+            char buf[64];
+            sprintf(buf, "RefIn=%s RefOut=%s -> CRC=0x%02X (erwartet 0x%02X)\n",
+                    options[refIn] ? "true" : "false",
+                    options[refOut] ? "true" : "false",
+                    crc, expected_crc);
+            DEBUG_MY(buf);
+        }
+    }
+}
+
 void inline RX_IRQ(unsigned char _RX_IRQ_data)
+{
+    static int _index = 0;
+    static int length = 999;
+    static uint8_t data_length_index;
+    static uint8_t data_CRC8_index;
+    unsigned char data = _RX_IRQ_data;
+
+    if (_index == 0) // warten auf Startbyte
+    {
+        if (data == 0x3D) // Startbyte
+        {
+            DEBUG_MY("Startbyte 0x3D gefunden\n");
+            BambuBus_data_buf[0] = 0x3D;
+            _RX_IRQ_crcx.restart();
+            _RX_IRQ_crcx.add(0x3D);
+            data_length_index = 4;
+            length = data_CRC8_index = 6;
+            _index = 1;
+        }
+        return;
+    }
+
+    BambuBus_data_buf[_index] = data;
+
+    if (_index == 1) // Pakettyp-Byte
+    {
+        if (data & 0x80) { data_length_index = 2; data_CRC8_index = 3; }
+        else { data_length_index = 4; data_CRC8_index = 6; }
+    }
+
+    if (_index == data_length_index) length = data;
+
+    // CRC-Berechnung
+    if (_index < data_CRC8_index)
+    {
+        _RX_IRQ_crcx.add(data);
+    }
+    else if (_index == data_CRC8_index) // CRC-Byte empfangen
+    {
+        uint8_t crc = _RX_IRQ_crcx.calc();
+
+        // komplette Übersicht ausgeben
+        char buf[256];
+        sprintf(buf, "=== Paketübersicht ===\nStartbyte: 0x%02X\nPakettyp: 0x%02X\nPayload: ",
+                BambuBus_data_buf[0], BambuBus_data_buf[1]);
+        DEBUG_MY(buf);
+
+        for (int i = 1; i < data_CRC8_index; i++)
+        {
+            sprintf(buf, "[%d] 0x%02X ", i, BambuBus_data_buf[i]);
+            DEBUG_MY(buf);
+        }
+
+        sprintf(buf, "\nCRC-Byte empfangen: 0x%02X, berechnet: 0x%02X\n", data, crc);
+        DEBUG_MY(buf);
+
+        if (data != crc)
+        {
+            DEBUG_MY("CRC ERROR!\n");
+            _index = 0;
+            return;
+        }
+    }
+
+    ++_index;
+
+    if (_index >= length) // Paket komplett
+    {
+        memcpy(buf_X, BambuBus_data_buf, length);
+        BambuBus_have_data = length;
+        DEBUG_MY("PACKAGE COMPLETE\n");
+        _index = 0;
+    }
+
+    if (_index >= 999) // recv error
+    {
+        DEBUG_MY("RX_IRQ RESET\n");
+        _index = 0;
+    }
+}
+
+/*void inline RX_IRQ(unsigned char _RX_IRQ_data)
 {
     static int _index = 0;
     static int length = 999;
@@ -205,9 +331,11 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
     {
         if (data == 0x3D) // start byte
         {
+            DEBUG_MY("Startbype 0x3D gefunden\n");
+            //testBambuBusCRC(); //testfunktion 1x aufrufen
             BambuBus_data_buf[0] = 0x3D;
             _RX_IRQ_crcx.restart();
-            _RX_IRQ_crcx.add(0x3D);
+            //_RX_IRQ_crcx.add(0x3D); //auskommentiert aufgrund Protokoll Information
             data_length_index = 4;
             length = data_CRC8_index = 6;
             _index = 1;
@@ -226,12 +354,26 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
 
         if (_index == data_length_index) length = data;
 
-        if (_index < data_CRC8_index) _RX_IRQ_crcx.add(data);
+        //if (_index < data_CRC8_index) _RX_IRQ_crcx.add(data);
+        if (_index < data_CRC8_index) // before CRC8 byte, add data
+        {
+            _RX_IRQ_crcx.add(data);
+            // Hier Debug-Ausgabe einfügen
+            char buf[64];
+            sprintf(buf, "Add byte 0x%02X to CRC\n", data);
+            DEBUG_MY(buf);
+            sprintf(buf, "RefIn/RefOut add byte 0x%02X\n", data);
+            DEBUG_MY(buf);
+        }
         else if (_index == data_CRC8_index) 
         {
-            if (data != _RX_IRQ_crcx.calc())
-            {
-                DEBUG_MY("CRC ERROR\n");
+            uint8_t crc = _RX_IRQ_crcx.calc();
+            char buf[64];
+            sprintf(buf, "CRC check: got 0x%02X, calculated 0x%02X\n", data, crc);
+            DEBUG_MY(buf);
+            if (data != crc)
+            {   
+                DEBUG_MY("CRC ERROR!\n");
                 _index = 0;
                 return;
             }
@@ -240,26 +382,27 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
         // ++_index **vor Debug**, damit der Debugwert stimmt
         ++_index;
 
-        char buf[64];
-        sprintf(buf, "RX_IRQ byte: 0x%02X index: %d  length_idx: %d\n", data, _index, data_length_index);
-        DEBUG_MY(buf);
+        //char buf[64];
+        //sprintf(buf, "RX_IRQ byte: 0x%02X index: %d  length_idx: %d\n", data, _index, data_length_index);
+        //DEBUG_MY(buf);
 
 
         if (_index >= length) // paket komplett
         {
             memcpy(buf_X, BambuBus_data_buf, length);
             BambuBus_have_data = length;
+            // Hier Debug-Ausgabe einfügen
             DEBUG_MY("PACKAGE COMPLETE\n");
             _index = 0;
         }
 
         if (_index >= 999) // recv error
         {
-            DEBUG_MY("RX_IRQ RESET\n");
+            //DEBUG_MY("RX_IRQ RESET\n");
             _index = 0;
         }
     }
-}
+}*/
 
 // Event-Queue für UART-Interrupts
 static QueueHandle_t uart_queue;
