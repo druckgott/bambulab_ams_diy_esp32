@@ -72,5 +72,15 @@ Laut [Bambulab Wiki – AMS Connector Pinout](https://wiki.bambulab.com/en/x1/tr
                                    DI ────────────────► GPIO17 (TX)
                                DE+RE ────────────────► GPIO5
                                    VCC ───────────────► VIN (5V)
+```
+
+## 🖼️ Pictures
+
+![Alternativtext](images/ams.jpg)
+
+![Alternativtext](images/second_ams.jpg)
+
+![Alternativtext](images/webserial.jpg)
+
 
 

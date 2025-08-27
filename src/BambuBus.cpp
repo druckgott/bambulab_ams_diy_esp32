@@ -304,59 +304,6 @@ void send_uart(const uint8_t *data, size_t length)
     gpio_set_level(DE_PIN, 0);   // RS485 DE aus -> zurück auf Empfang
 }
 
-/*void BambuBUS_UART_Init()
-{
-    DEBUG_MY("BambuBUS_UART_Init: UART-Konfiguration starten\n");
-
-    const uart_config_t uart_config = {
-        .baud_rate = BAMBU_UART_BAUD,
-        .data_bits = UART_DATA_8_BITS,
-        .parity    = UART_PARITY_EVEN,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_APB,
-    };
-    uart_param_config(UART_PORT, &uart_config);
-    uart_set_pin(UART_PORT, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(UART_PORT, 2048, 0, 20, &uart_queue, 0);
-    //uart_driver_install(UART_PORT, 4096, 0, 20, &uart_queue, 0);
-
-    // RS485 DE-Pin konfigurieren
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << DE_PIN),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&io_conf);
-    gpio_set_level(DE_PIN, 0); // Empfang ermöglichen
-    DEBUG_MY("DE_PIN auf 0 gesetzt (Empfang)\n");
-
-    xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
-
-    // Kleiner Loopback-/Bus-Test: sende 0xAA, warte und prüfe RX
-    {
-        char buf[128];
-        uint8_t test_byte = 0xAA;
-        gpio_set_level(DE_PIN, 1); // sende aktivieren
-        int sent = uart_write_bytes(UART_PORT, (const char*)&test_byte, 1);
-        uart_wait_tx_done(UART_PORT, pdMS_TO_TICKS(100)); // sicherstellen, dass gesendet
-        gpio_set_level(DE_PIN, 0); // zurück in Empfang
-        sprintf(buf, "Testbyte gesendet: 0x%02X, Bytes gesendet: %d\n", test_byte, sent);
-        DEBUG_MY(buf);
-
-        // ein bisschen länger warten, damit der event_task es lesen kann
-        vTaskDelay(pdMS_TO_TICKS(200));
-
-        // Prüfe, ob irgendein Byte jetzt im rx buffer liegt (debug only)
-        size_t avail = 0;
-        uart_get_buffered_data_len(UART_PORT, &avail);
-        sprintf(buf, "UART buffered data len after test: %u\n", (unsigned)avail);
-        DEBUG_MY(buf);
-    }
-}*/
-
 void BambuBUS_UART_Init()
 {
     // UART Konfiguration (Arduino-ESP32)
