@@ -90,8 +90,8 @@ Laut [Bambulab Wiki – AMS Connector Pinout](https://wiki.bambulab.com/en/x1/tr
 
 | AMS Kabel (6-Pin) | Signal | MAX485 Pin | Hinweis                       |
 |-------------------|--------|------------|-------------------------------|
-| Pin 1             | A      | A          | RS485 differenzielles Signal  |
-| Pin 2             | B      | B          | RS485 differenzielles Signal  |
+| Pin 1             | B      | B          | RS485 differenzielles Signal  |
+| Pin 2             | A      | A          | RS485 differenzielles Signal  |
 | Pin 3             | GND    | GND        | Masse                         |
 | Pin 4             | 24 V   | ❌ **Nicht anschließen** |
 | Pin 5             | NC     | ❌ Nicht belegt            |
