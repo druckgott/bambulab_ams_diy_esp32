@@ -1,12 +1,10 @@
-Aktuell funktioniert es leider noch nicht, weil ein CRC Fehler beim leses des Buses zum ESP auftritt
-
-Es gibt einen Branch mit OTA und Webserial zur einfacheren analyse:
-https://github.com/druckgott/bambulab_ams_diy_esp32_test/tree/ota_webserial
-
 ## 🖼️ Links/Quellen mit dem der Übertrag auf einem ESP32 stattgefunden hat bzw. findet:
 
 Dieser Code wurde als Basis verwendet und auf einem ESP32 übertragen:
 https://github.com/krrr/BMCU370
+
+Es gibt einen Branch mit OTA und Webserial zur einfacheren analyse:
+https://github.com/druckgott/bambulab_ams_diy_esp32_test/tree/ota_webserial
 
 Sonstige Infos:
 
@@ -14,56 +12,7 @@ https://wiki.bambulab.com/en/x1/troubleshooting/AMS_is_not_detected_by_the_print
 
 https://github.com/Bambu-Research-Group/Bambu-Bus
 
-
 https://github.com/09lab/BambuBus-Sniffer
-
-### 1. UART Initialisierung
-- Baudrate: **1.250.000 Baud**  
-- Datenbits: **8**  
-- Parität: **Even**  
-- Stopbits: **1**  
-- RS485 Steuerung über `DE_PIN`:  
-  - **0 → Empfang**  
-  - **1 → Senden**  
-
-Beim Start wird `DE_PIN` korrekt auf **0** gesetzt und ein Testbyte (`0xAA`) über UART gesendet.
-
----
-
-### 2. Empfang (uart_event_task)
-Wir haben zwei Varianten getestet:
-- **Byteweise Weitergabe** (`uint8_t data[2]`) → funktioniert grundsätzlich, aber oft fragmentiert.  
-- **Größerer Buffer + Debug-Ausgabe der Rohdaten** (`uint8_t data[128]`) → ermöglicht zu sehen, was wirklich am UART ankommt.  
-
----
-
-### 3. Beobachtungen
-- Teilweise werden korrekte **Startbytes (0x3D)** erkannt.  
-- Pakete werden im `RX_IRQ` korrekt angefangen einzulesen.  
-- Allerdings kommt es **immer wieder zu CRC-Fehlern**, d.h. das empfangene CRC stimmt nicht mit dem berechneten überein.  
-
----
-
-### 4. Aktuelle Probleme
-- In den meisten Fällen tritt **UART Event Type 5 (Framing Error)** auf → das bedeutet, dass auf der Leitung zwar Aktivität ist, der ESP32 die Bits aber nicht korrekt in Bytes dekodieren kann.  
-- Ab und zu wird **Event Type 1 (Daten verfügbar)** gemeldet → aber auch hier oft fehlerhafte Bytes.  
-- Debug-Ausgaben zeigen, dass der **DE_PIN manchmal fälschlicherweise auf 1** bleibt, wodurch der ESP nicht mehr empfängt.  
-- Ohne sauberen UART-Empfang ist eine funktionierende **CRC-Prüfung unmöglich**.
-
----
-
-## Fazit
-- **RX_IRQ selbst funktioniert**: die Logik zum Einlesen und Paketaufbau wurde aus dem Python-Port übernommen und liefert Ausgaben.  
-- **Das Hauptproblem liegt tiefer**:  
-  - Falsche oder instabile UART-Parameter  
-  - Probleme mit der MAX485-Beschaltung (DE/RE-Steuerung)  
-  - Eventuell Signalqualität oder Timing auf dem BambuBus  
-
-Solange der ESP32 nur **Framing Errors (UART_EVENT_TYPE 5)** empfängt,  
-kann kein gültiges BambuBus-Paket dekodiert werden → **CRC-Fehler sind die Folge**.
-
-
-
 
 # 📡 ESP32 ↔ MAX485 ↔ Bambulab AMS
 
