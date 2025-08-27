@@ -299,6 +299,7 @@ void testBambuBusCRC() {
     }
 }*/
 
+/*
 void inline RX_IRQ(unsigned char _RX_IRQ_data)
 {
     static int _index = 0;
@@ -379,9 +380,9 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
         DEBUG_MY("RX_IRQ RESET\n");
         _index = 0;
     }
-}
+}*/
 
-/*void inline RX_IRQ(unsigned char _RX_IRQ_data)
+void inline RX_IRQ(unsigned char _RX_IRQ_data)
 {
     static int _index = 0;
     static int length = 999;
@@ -397,7 +398,7 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
             //testBambuBusCRC(); //testfunktion 1x aufrufen
             BambuBus_data_buf[0] = 0x3D;
             _RX_IRQ_crcx.restart();
-            //_RX_IRQ_crcx.add(0x3D); //auskommentiert aufgrund Protokoll Information
+            _RX_IRQ_crcx.add(0x3D);
             data_length_index = 4;
             length = data_CRC8_index = 6;
             _index = 1;
@@ -421,18 +422,18 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
         {
             _RX_IRQ_crcx.add(data);
             // Hier Debug-Ausgabe einfügen
-            char buf[64];
-            sprintf(buf, "Add byte 0x%02X to CRC\n", data);
-            DEBUG_MY(buf);
-            sprintf(buf, "RefIn/RefOut add byte 0x%02X\n", data);
-            DEBUG_MY(buf);
+            //char buf[64];
+            //sprintf(buf, "Add byte 0x%02X to CRC\n", data);
+            //DEBUG_MY(buf);
+            //sprintf(buf, "RefIn/RefOut add byte 0x%02X\n", data);
+            //DEBUG_MY(buf);
         }
         else if (_index == data_CRC8_index) 
         {
             uint8_t crc = _RX_IRQ_crcx.calc();
-            char buf[64];
-            sprintf(buf, "CRC check: got 0x%02X, calculated 0x%02X\n", data, crc);
-            DEBUG_MY(buf);
+            //char buf[64];
+            //sprintf(buf, "CRC check: got 0x%02X, calculated 0x%02X\n", data, crc);
+            //DEBUG_MY(buf);
             if (data != crc)
             {   
                 DEBUG_MY("CRC ERROR!\n");
@@ -464,7 +465,7 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
             _index = 0;
         }
     }
-}*/
+}
 
 // Event-Queue für UART-Interrupts
 static QueueHandle_t uart_queue;
@@ -503,38 +504,24 @@ void send_uart(const uint8_t *data, size_t length)
     }
 }*/
 
-static void uart_event_task(void *pvParameters)
-{
+static void uart_event_task(void *pvParameters) {
     uart_event_t event;
-    uint8_t data[2]; // kleines Puffer, wie vorher
+    uint8_t data[64];   // Zwischenspeicher
 
     for (;;) {
         if (xQueueReceive(uart_queue, (void *)&event, portMAX_DELAY)) {
             if (event.type == UART_DATA) {
-                // kleine Chunks lesen
-                int len = uart_read_bytes(UART_PORT, data, sizeof(data), 20 / portTICK_PERIOD_MS);
-
-                char buf[128];
-                sprintf(buf, "UART_EVENT: %d bytes gelesen\n", len);
-                DEBUG_MY(buf);
-
-                // DE_PIN Level prüfen
-                int de_level = gpio_get_level(DE_PIN);
-                sprintf(buf, "DE_PIN level: %d\n", de_level);
-                DEBUG_MY(buf);
-
-                // jedes Byte debuggen und an RX_IRQ weitergeben
+                int len = uart_read_bytes(UART_PORT, data, sizeof(data), pdMS_TO_TICKS(50));
                 for (int i = 0; i < len; i++) {
-                    sprintf(buf, "RAW[%02d] = 0x%02X\n", i, data[i]);
-                    DEBUG_MY(buf);
                     RX_IRQ(data[i]);
                 }
-            } else {
-                // optional: andere Event-Typen ausgeben
+            } 
+            /*else 
+            {
                 char buf[64];
                 sprintf(buf, "UART event type: %d\n", event.type);
                 DEBUG_MY(buf);
-            }
+            }*/
         }
     }
 }
@@ -548,11 +535,13 @@ void BambuBUS_UART_Init()
         .data_bits = UART_DATA_8_BITS,
         .parity    = UART_PARITY_EVEN,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
     };
     uart_param_config(UART_PORT, &uart_config);
     uart_set_pin(UART_PORT, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    uart_driver_install(UART_PORT, 2048, 0, 20, &uart_queue, 0);
+    //uart_driver_install(UART_PORT, 2048, 0, 20, &uart_queue, 0);
+    uart_driver_install(UART_PORT, 4096, 0, 20, &uart_queue, 0);
 
     // RS485 DE-Pin konfigurieren
     gpio_config_t io_conf = {
