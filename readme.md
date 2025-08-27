@@ -1,6 +1,7 @@
 Aktuell funktioniert es leider noch nicht, weil ein CRC Fehler beim leses des Buses zum ESP auftritt
 
-Es gibt einen Branch mit OTA und Webserial zur einfacheren analyse.
+Es gibt einen Branch mit OTA und Webserial zur einfacheren analyse:
+https://github.com/druckgott/bambulab_ams_diy_esp32_test/tree/ota_webserial
 
 ## 🖼️ Links/Quellen mit dem der Übertrag auf einem ESP32 stattgefunden hat bzw. findet:
 
