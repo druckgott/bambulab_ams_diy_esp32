@@ -8,7 +8,13 @@
 //Nur UART_PORT → der ESP32 weiß nicht, auf welchen Pins er senden/empfangen soll.
 //Nur TXD_PIN/RXD_PIN → du hast keine Hardware-UART ausgewählt.
 //Bambulab Verbindung
-#define BAMBU_UART_BAUD   1250000
+//#define BAMBU_UART_BAUD   1250000
+#define BAMBU_UART_BAUD 1228800 //anderer Wert, weil der esp genau die 1250000 nicht halten kann
+//Der UART im ESP32 hat gröbere Teiler, d.h. er kann nicht jede Baudrate exakt treffen.
+//Bei „krummen“ Raten wie 1 250 000 liegt der Fehler auf dem ESP32 bei mehreren Prozent – das reicht, damit CRC kaputtgeht, weil einzelne Bits kippen.
+//👉 Die nächstbessere Baudrate, die der ESP32 exakt kann, ist 1 228 800 Bd.
+//Das ist näher an 1.25 M als das, was er bei 1250000 tatsächlich erzeugt.
+
 #define UART_PORT   UART_NUM_1 //USB --> UART_NUM_0, TX2/RX2 --> UART_NUM_1
 // wähle passende Pins am 32-Pin-ESP32
 #define TXD_PIN     GPIO_NUM_17 //TX Pin 17
@@ -83,6 +89,10 @@
 #define Debug_log_on
 #define Debug_log_baudrate 115200
 
+//OTA Task
+#define OTA_TASK_DELAY_MS 100  // Verzögerung für OTA-Task in Millisekunden
+
 // Globale Variablen (nur Deklaration!)
 extern uint8_t BambuBus_AMS_num;
 extern uint8_t AMS_humidity_wet;
+

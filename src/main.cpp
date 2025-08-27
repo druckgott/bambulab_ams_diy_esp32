@@ -67,6 +67,10 @@ extern void send_uart(const unsigned char *data, uint16_t length);
 
 void setup()
 {
+    //ota Webserial init
+    init_ota_webserial();
+    delay(10000); //for startup of webserial and have time to connect
+
     // RGB-LEDs initialisieren
     RGB_init();
     // RGB-Anzeige aktualisieren
@@ -169,7 +173,7 @@ void loop()
             is_first_run = stu;
             if (stu == BambuBus_package_type::ERROR)
             {
-                DEBUG_MY("BambuBus_offline\n"); // Offline
+                DEBUG_MY("BambuBus_error\n"); // error
             }
             else if (stu == BambuBus_package_type::heartbeat)
             {

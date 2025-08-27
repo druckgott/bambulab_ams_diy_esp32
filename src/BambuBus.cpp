@@ -7,12 +7,26 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
+#define RX_IRQ_CRC8_POLY     0x39
+#define RX_IRQ_CRC8_INIT     0x66
+#define RX_IRQ_CRC8_XOROUT   0x00
+#define RX_IRQ_CRC8_REFIN    false
+#define RX_IRQ_CRC8_REFOUT   false
+
 CRC16 crc_16;
 CRC8 crc_8;
 
 uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
+
+uint8_t buf_X[1000];
+CRC8 _RX_IRQ_crcx(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
+// Event-Queue für UART-Interrupts
+static QueueHandle_t uart_queue;
+
+// Forward-Deklaration deiner eigenen RX-Callback-Funktion
+extern void RX_IRQ(uint16_t data);
 
 struct _filament
 {
@@ -56,18 +70,23 @@ struct alignas(4) flash_save_struct
     return false;
 }*/
 
-// Flashzugriff ausschalten erstmal fake werte setzen
 bool Bambubus_read()
 {
-    // Hier können default-Werte gesetzt werden
+    // Fake Filament-Werte setzen
     for (int i = 0; i < 4; i++)
     {
-        data_save.filament[i].meters = 3;
-        data_save.filament[i].motion_set = AMS_filament_motion::idle;
-        data_save.filament[i].statu = AMS_filament_stu::online;
+        data_save.filament[i].meters = 3;                      // 3 Meter Beispiel
+        data_save.filament[i].motion_set = AMS_filament_motion::idle; // idle
+        data_save.filament[i].statu = AMS_filament_stu::online;      // online
     }
-    data_save.BambuBus_now_filament_num = 0xFF;
-    data_save.filament_use_flag = 0x00;
+
+    data_save.BambuBus_now_filament_num = 0xFF; // keine aktive Spule
+    data_save.filament_use_flag = 0x00;        // Flag zurücksetzen
+
+    // Version & Check wie erwartet setzen
+    data_save.check = 0x40614061;
+    data_save.version = Bambubus_version;
+
     return true; // immer erfolgreich
 }
 
@@ -191,8 +210,8 @@ bool BambuBus_if_on_print()
     }
     return on_print;
 }
-uint8_t buf_X[1000];
-CRC8 _RX_IRQ_crcx(0x39, 0x66, 0x00, false, false);
+
+//hier kommen teilweise relativ viele Daten zurck reist aber immer wieder ab
 void inline RX_IRQ(unsigned char _RX_IRQ_data)
 {
     static int _index = 0;
@@ -226,12 +245,16 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
 
         if (_index == data_length_index) length = data;
 
-        if (_index < data_CRC8_index) _RX_IRQ_crcx.add(data);
+        if (_index < data_CRC8_index) // before CRC8 byte, add data
+        {
+            _RX_IRQ_crcx.add(data);
+        }
         else if (_index == data_CRC8_index) 
         {
-            if (data != _RX_IRQ_crcx.calc())
-            {
-                DEBUG_MY("CRC ERROR\n");
+            uint8_t crc = _RX_IRQ_crcx.calc();
+            if (data != crc)
+            {   
+                DEBUG_MY("CRC ERROR!\n");
                 _index = 0;
                 return;
             }
@@ -240,15 +263,11 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
         // ++_index **vor Debug**, damit der Debugwert stimmt
         ++_index;
 
-        char buf[64];
-        sprintf(buf, "RX_IRQ byte: 0x%02X index: %d  length_idx: %d\n", data, _index, data_length_index);
-        DEBUG_MY(buf);
-
-
         if (_index >= length) // paket komplett
         {
             memcpy(buf_X, BambuBus_data_buf, length);
             BambuBus_have_data = length;
+            // Hier Debug-Ausgabe einfügen
             DEBUG_MY("PACKAGE COMPLETE\n");
             _index = 0;
         }
@@ -261,11 +280,21 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
     }
 }
 
-// Event-Queue für UART-Interrupts
-static QueueHandle_t uart_queue;
+static void uart_event_task(void *pvParameters) {
+    uart_event_t event;
+    uint8_t data[64];   // Zwischenspeicher
 
-// Forward-Deklaration deiner eigenen RX-Callback-Funktion
-extern void RX_IRQ(uint16_t data);
+    for (;;) {
+        if (xQueueReceive(uart_queue, (void *)&event, portMAX_DELAY)) {
+            if (event.type == UART_DATA) {
+                int len = uart_read_bytes(UART_PORT, data, sizeof(data), pdMS_TO_TICKS(50));
+                for (int i = 0; i < len; i++) {
+                    RX_IRQ(data[i]);
+                }
+            } 
+        }
+    }
+}
 
 void send_uart(const uint8_t *data, size_t length)
 {
@@ -275,28 +304,58 @@ void send_uart(const uint8_t *data, size_t length)
     gpio_set_level(DE_PIN, 0);   // RS485 DE aus -> zurück auf Empfang
 }
 
-//simple methode:
-/*void send_uart(const uint8_t *data, size_t length)
+/*void BambuBUS_UART_Init()
 {
-    gpio_set_level(DE_PIN, 1);                 // Senden starten
-    uart_write_bytes(UART_PORT, (const char *)data, length);
-    gpio_set_level(DE_PIN, 0);                 // Senden fertig
-}*/
+    DEBUG_MY("BambuBUS_UART_Init: UART-Konfiguration starten\n");
 
-static void uart_event_task(void *pvParameters)
-{
-    uart_event_t event;
-    uint8_t data[2];
+    const uart_config_t uart_config = {
+        .baud_rate = BAMBU_UART_BAUD,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_EVEN,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
+    };
+    uart_param_config(UART_PORT, &uart_config);
+    uart_set_pin(UART_PORT, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_driver_install(UART_PORT, 2048, 0, 20, &uart_queue, 0);
+    //uart_driver_install(UART_PORT, 4096, 0, 20, &uart_queue, 0);
 
-    for (;;) {
-        if (xQueueReceive(uart_queue, (void *)&event, portMAX_DELAY)) {
-            if (event.type == UART_DATA) {
-                int len = uart_read_bytes(UART_PORT, data, sizeof(data), 20 / portTICK_PERIOD_MS);
-                for (int i = 0; i < len; i++) RX_IRQ(data[i]);
-            }
-        }
+    // RS485 DE-Pin konfigurieren
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << DE_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
+    gpio_set_level(DE_PIN, 0); // Empfang ermöglichen
+    DEBUG_MY("DE_PIN auf 0 gesetzt (Empfang)\n");
+
+    xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
+
+    // Kleiner Loopback-/Bus-Test: sende 0xAA, warte und prüfe RX
+    {
+        char buf[128];
+        uint8_t test_byte = 0xAA;
+        gpio_set_level(DE_PIN, 1); // sende aktivieren
+        int sent = uart_write_bytes(UART_PORT, (const char*)&test_byte, 1);
+        uart_wait_tx_done(UART_PORT, pdMS_TO_TICKS(100)); // sicherstellen, dass gesendet
+        gpio_set_level(DE_PIN, 0); // zurück in Empfang
+        sprintf(buf, "Testbyte gesendet: 0x%02X, Bytes gesendet: %d\n", test_byte, sent);
+        DEBUG_MY(buf);
+
+        // ein bisschen länger warten, damit der event_task es lesen kann
+        vTaskDelay(pdMS_TO_TICKS(200));
+
+        // Prüfe, ob irgendein Byte jetzt im rx buffer liegt (debug only)
+        size_t avail = 0;
+        uart_get_buffered_data_len(UART_PORT, &avail);
+        sprintf(buf, "UART buffered data len after test: %u\n", (unsigned)avail);
+        DEBUG_MY(buf);
     }
-}
+}*/
 
 void BambuBUS_UART_Init()
 {
@@ -306,8 +365,8 @@ void BambuBUS_UART_Init()
         .data_bits = UART_DATA_8_BITS,     // 9-Bit UART geht hier nicht
         .parity    = UART_PARITY_EVEN,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
-        // source_clk fällt weg
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
     };
 
     // Parameter anwenden
@@ -337,7 +396,8 @@ void BambuBUS_UART_Init()
 void BambuBus_init()
 {
     bool _init_ready = Bambubus_read();
-    crc_8.reset(0x39, 0x66, 0, false, false);
+    //crc_8.reset(0x39, 0x66, 0, false, false);
+    crc_8.reset(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
     crc_16.reset(0x1021, 0x913D, 0, false, false);
 
     if (_init_ready)
