@@ -1,7 +1,7 @@
 #include "BambuBus.h"
 #include "CRC16.h"
 #include "CRC8.h"
-#include <stdio.h>
+//#include <stdio.h>
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "freertos/queue.h"

@@ -1,6 +1,6 @@
-#include "main.h"
-
 #pragma once
+
+#include "main.h"
 
 //UART PORT = sagt welcher UART im Chip (Controller) benutzt wird.
 //TXD_PIN/RXD_PIN = sagt welche physischen GPIOs nach außen verbunden werden.
@@ -95,3 +95,4 @@
 // Globale Variablen (nur Deklaration!)
 extern uint8_t BambuBus_AMS_num;
 extern uint8_t AMS_humidity_wet;
+

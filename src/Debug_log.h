@@ -1,7 +1,6 @@
 #pragma once
 
 #include "main.h"
-#include "pins.h"
 
 #ifdef __cplusplus
 extern "C" {
