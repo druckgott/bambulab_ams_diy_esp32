@@ -22,8 +22,6 @@ uint16_t BambuBus_address = 0;
 
 uint8_t buf_X[1000];
 CRC8 _RX_IRQ_crcx(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
-//CRC8 _RX_IRQ_crcx(0x39, 0x66, 0x00, false, false); //Angeblich richtige version
-//CRC8 _RX_IRQ_crcx(0x39, 0x00, 0x00, true, true); //neues Update aufgrund analyse
 // Event-Queue für UART-Interrupts
 static QueueHandle_t uart_queue;
 
@@ -213,137 +211,6 @@ bool BambuBus_if_on_print()
     return on_print;
 }
 
-void testBambuBusCRC() {
-    uint8_t paket[] = { 0xFD, 0xFF }; // Beispielbytes ohne Startbyte
-    uint8_t expected_crc = 0x05;
-
-    bool options[2] = {false, true};
-
-    DEBUG_MY("Teste alle CRC8-Konfigurationen:\n");
-    for (int refIn = 0; refIn <= 1; refIn++) {
-        for (int refOut = 0; refOut <= 1; refOut++) {
-            CRC8 crcCalc(0x39, 0x00, 0x00, options[refIn], options[refOut]);
-            crcCalc.restart();
-
-            for (int i = 0; i < sizeof(paket); i++) {
-                crcCalc.add(paket[i]);
-
-                // DEBUG-Hinweis pro Byte
-                char buf[64];
-                sprintf(buf, "RefIn=%s RefOut=%s: Add byte 0x%02X to CRC\n",
-                        options[refIn] ? "true" : "false",
-                        options[refOut] ? "true" : "false",
-                        paket[i]);
-                DEBUG_MY(buf);
-            }
-
-            // CRC berechnen und Ergebnis ausgeben
-            uint8_t crc = crcCalc.calc();
-            char buf[64];
-            sprintf(buf, "RefIn=%s RefOut=%s -> CRC=0x%02X (erwartet 0x%02X)\n",
-                    options[refIn] ? "true" : "false",
-                    options[refOut] ? "true" : "false",
-                    crc, expected_crc);
-            DEBUG_MY(buf);
-        }
-    }
-}
-
-/*
-// ---------------------------
-// RX_IRQ: Buffered & CRC-safe
-// ---------------------------
-void inline RX_IRQ(unsigned char _RX_IRQ_data)
-{
-    static int _index = 0;
-    static int length = 999;
-    static uint8_t data_length_index;
-    static uint8_t data_CRC8_index;
-
-    unsigned char data = _RX_IRQ_data;
-
-    // Startbyte prüfen
-    if (_index == 0) {
-        if (data == 0x3D) {
-            BambuBus_data_buf[0] = 0x3D;
-            _RX_IRQ_crcx.restart();
-            _RX_IRQ_crcx.add(0x3D);
-            data_length_index = 4;
-            length = data_CRC8_index = 6;
-            _index = 1;
-        }
-        return;
-    }
-
-    // Byte ins Puffer
-    BambuBus_data_buf[_index] = data;
-
-    // Pakettyp -> Länge und CRC-Position setzen
-    if (_index == 1) {
-        if (data & 0x80) { data_length_index = 2; data_CRC8_index = 3; }
-        else { data_length_index = 4; data_CRC8_index = 6; }
-    }
-
-    // Länge aus Byte ziehen
-    if (_index == data_length_index) length = data;
-
-    // Vor CRC-Byte ins CRC aufnehmen
-    if (_index < data_CRC8_index) {
-        _RX_IRQ_crcx.add(data);
-    }
-    // CRC-Byte prüfen
-    else if (_index == data_CRC8_index) {
-        uint8_t crc = _RX_IRQ_crcx.calc();
-        if (data != crc) {
-            DEBUG_MY("CRC ERROR! Reset RX_IRQ\n");
-            _index = 0; // Paket verwerfen
-            return;
-        }
-    }
-
-    // Index erhöhen
-    ++_index;
-
-    // Paket komplett
-    if (_index >= length) {
-        memcpy(buf_X, BambuBus_data_buf, length);
-        BambuBus_have_data = length;
-        DEBUG_MY("PACKAGE COMPLETE\n");
-        _index = 0;
-    }
-
-    // Safety Reset
-    if (_index >= 999) _index = 0;
-}
-
-// ---------------------------
-// UART Event Task: Minimal
-// ---------------------------
-static void uart_event_task(void *pvParameters)
-{
-    uart_event_t event;
-    uint8_t data[2]; // minimaler Puffer
-
-    for (;;) {
-        if (xQueueReceive(uart_queue, (void *)&event, portMAX_DELAY)) {
-
-            if (event.type == UART_DATA) {
-                int len = uart_read_bytes(UART_PORT, data, sizeof(data), 20 / portTICK_PERIOD_MS);
-                for (int i = 0; i < len; i++) {
-                    RX_IRQ(data[i]);
-                }
-            }
-            // Optional: andere Events debuggen
-            else {
-                char buf[64];
-                sprintf(buf, "UART event type: %d\n", event.type);
-                DEBUG_MY(buf);
-            }
-        }
-    }
-}*/
-
-
 //hier kommen teilweise relativ viele Daten zurck reist aber immer wieder ab
 void inline RX_IRQ(unsigned char _RX_IRQ_data)
 {
@@ -357,8 +224,6 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
     {
         if (data == 0x3D) // start byte
         {
-            //DEBUG_MY("Startbype 0x3D gefunden\n");
-            //testBambuBusCRC(); //testfunktion 1x aufrufen
             BambuBus_data_buf[0] = 0x3D;
             _RX_IRQ_crcx.restart();
             _RX_IRQ_crcx.add(0x3D);
@@ -397,11 +262,6 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
 
         // ++_index **vor Debug**, damit der Debugwert stimmt
         ++_index;
-
-        // Alle Bytes loggen, auch das Startbyte
-        char buf[64];
-        sprintf(buf, "RAW[%03d] = 0x%02X\n", _index, data);
-        DEBUG_MY(buf);
 
         if (_index >= length) // paket komplett
         {
@@ -444,7 +304,7 @@ void send_uart(const uint8_t *data, size_t length)
     gpio_set_level(DE_PIN, 0);   // RS485 DE aus -> zurück auf Empfang
 }
 
-void BambuBUS_UART_Init()
+/*void BambuBUS_UART_Init()
 {
     DEBUG_MY("BambuBUS_UART_Init: UART-Konfiguration starten\n");
 
@@ -458,8 +318,8 @@ void BambuBUS_UART_Init()
     };
     uart_param_config(UART_PORT, &uart_config);
     uart_set_pin(UART_PORT, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    //uart_driver_install(UART_PORT, 2048, 0, 20, &uart_queue, 0);
-    uart_driver_install(UART_PORT, 4096, 0, 20, &uart_queue, 0);
+    uart_driver_install(UART_PORT, 2048, 0, 20, &uart_queue, 0);
+    //uart_driver_install(UART_PORT, 4096, 0, 20, &uart_queue, 0);
 
     // RS485 DE-Pin konfigurieren
     gpio_config_t io_conf = {
@@ -495,9 +355,9 @@ void BambuBUS_UART_Init()
         sprintf(buf, "UART buffered data len after test: %u\n", (unsigned)avail);
         DEBUG_MY(buf);
     }
-}
+}*/
 
-/*void BambuBUS_UART_Init()
+void BambuBUS_UART_Init()
 {
     // UART Konfiguration (Arduino-ESP32)
     const uart_config_t uart_config = {
@@ -505,8 +365,8 @@ void BambuBUS_UART_Init()
         .data_bits = UART_DATA_8_BITS,     // 9-Bit UART geht hier nicht
         .parity    = UART_PARITY_EVEN,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
-        // source_clk fällt weg
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
     };
 
     // Parameter anwenden
@@ -531,7 +391,7 @@ void BambuBUS_UART_Init()
 
     // Task starten, die UART-Events (Interrupts) behandelt
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
-}*/
+}
 
 void BambuBus_init()
 {
