@@ -70,7 +70,8 @@ void setup()
     //ota Webserial init
     init_ota_webserial();
     delay(10000); //for startup of webserial and have time to connect
-
+    DEBUG_init();
+    
     // RGB-LEDs initialisieren
     RGB_init();
     // RGB-Anzeige aktualisieren
@@ -78,8 +79,9 @@ void setup()
     // RGB-Helligkeit einstellen. Das bedeutet, die Farbverhältnisse bleiben erhalten, aber der Maximalwert wird begrenzt.
     RGB_Set_Brightness();
 
+    Flash_init();
     BambuBus_init();
-    DEBUG_init();
+    
     Motion_control_init();
     delay(1);
 }

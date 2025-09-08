@@ -130,26 +130,65 @@ void MC_PULL_ONLINE_read()
 
 #define PWM_lim 1000
 
-struct alignas(4) Motion_control_save_struct
-{
-    int Motion_control_dir[4];
-    int check = 0x40614061;
-} Motion_control_data_save;
+Motion_control_save_struct Motion_control_data_save alignas(4) = {
+    {0, 0, 0, 0},  // Motion_control_dir
+    0x40614061      // check
+};
 
-#define Motion_control_save_flash_addr ((uint32_t)0x0800E000)
 /*bool Motion_control_read()
 {
-    Motion_control_save_struct *ptr = (Motion_control_save_struct *)(Motion_control_save_flash_addr);
-    if (ptr->check == 0x40614061)
-    {
-        memcpy(&Motion_control_data_save, ptr, sizeof(Motion_control_save_struct));
+    const esp_partition_t* partition = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA,
+        ESP_PARTITION_SUBTYPE_ANY,
+        "storage"
+    );
+
+    if (!partition) {
+        const char msg[] = "Fehler: Partition 'storage' nicht gefunden!\n";
+        Debug_log_write(msg);
+        return false;
+    }
+
+    Motion_control_save_struct temp;
+    esp_err_t err = esp_partition_read(partition, Motion_control_flash_addr, &temp, sizeof(temp));
+    if (err != ESP_OK) {
+        char msg[64];
+        int len = snprintf(msg, sizeof(msg), "Fehler beim Lesen Motion_control Flash: %d\n", err);
+        Debug_log_write_num(msg, len);
+        return false;
+    }
+
+    if (temp.check == 0x40614061) {
+        memcpy(&Motion_control_data_save, &temp, sizeof(Motion_control_save_struct));
         return true;
     }
+
+    const char msg[] = "Motion_control Flash-Daten ungültig!\n";
+    Debug_log_write(msg);
     return false;
 }*/
 
+bool Motion_control_read() {
+    Motion_control_save_struct temp;
+
+    // Lese die Daten über den globalen Flash_read (NVS-basiert)
+    if (!Flash_read(&temp, sizeof(temp), Motion_control_flash_addr)) {
+        printf("Motion_control_read: Fehler beim Lesen Motion_control Flash!\n");
+        return false;
+    }
+
+    // Prüfen von Checksum
+    if (temp.check == 0x40614061) {
+        memcpy(&Motion_control_data_save, &temp, sizeof(Motion_control_save_struct));
+        return true;
+    }
+
+    printf("Motion_control_read: Motion_control Flash-Daten ungültig!\n");
+    return false;
+}
+
 //Flash speicher muss noch eingebaut werden, erstmal fake werte
-bool Motion_control_read()
+/*bool Motion_control_read()
 {
     // Beispielhafte Richtungen der Achsen
     Motion_control_data_save.Motion_control_dir[0] = 1;   // X-Achse vorwärts
@@ -161,11 +200,14 @@ bool Motion_control_read()
     Motion_control_data_save.check = 0x40614061;
 
     return true;  // Immer erfolgreich
-}
+}*/
 
 void Motion_control_save()
 {
-    //Flash_saves(&Motion_control_data_save, sizeof(Motion_control_save_struct), Motion_control_save_flash_addr);
+    if (!Flash_saves(&Motion_control_data_save, sizeof(Motion_control_save_struct), Motion_control_flash_addr)) {
+        const char msg[] = "Fehler: Motion_control Flash speichern fehlgeschlagen!\n";
+        Debug_log_write(msg);
+    }
 }
 
 class MOTOR_PID

@@ -89,10 +89,15 @@
 #define Debug_log_on
 #define Debug_log_baudrate 115200
 
+#define _Bambubus_DEBUG_mode_
+
 //OTA Task
 #define OTA_TASK_DELAY_MS 100  // Verzögerung für OTA-Task in Millisekunden
 
 // Globale Variablen (nur Deklaration!)
 extern uint8_t BambuBus_AMS_num;
 extern uint8_t AMS_humidity_wet;
+
+#define Bambubus_flash_addr        0x000   // Start der storage-Partition
+#define Motion_control_flash_addr  0x200   // direkt danach, genug Platz
 

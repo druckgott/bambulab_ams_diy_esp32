@@ -28,7 +28,7 @@ static QueueHandle_t uart_queue;
 // Forward-Deklaration deiner eigenen RX-Callback-Funktion
 extern void RX_IRQ(uint16_t data);
 
-struct _filament
+/*struct _filament
 {
     // AMS statu
     char ID[8] = "GFG00";
@@ -46,9 +46,7 @@ struct _filament
     // printer_set
     AMS_filament_motion motion_set = AMS_filament_motion::idle;
     uint16_t pressure = 0xFFFF;
-};
-
-#define use_flash_addr ((uint32_t)0x0800F000)
+};          
 
 struct alignas(4) flash_save_struct
 {
@@ -57,20 +55,89 @@ struct alignas(4) flash_save_struct
     uint8_t filament_use_flag = 0x00;
     uint32_t version = Bambubus_version;
     uint32_t check = 0x40614061;
-} data_save;
+} flash_save_struct;*/
+
+// Einmalige Definition mit Initialwerten
+flash_save_struct data_save = {
+    {
+        { 
+            "GFG00",                // ID[8] – eindeutige Kennung der Spule
+            0xFF, 0xFF, 0xFF, 0xFF, // color_R, color_G, color_B, color_A – Farbe (RGBA)
+            220, 240,               // temperature_min, temperature_max – minimale und maximale Drucktemperatur
+            "PETG",                 // name[20] – Filamentname
+            0,                      // meters – bisher verbrauchte Meter
+            0,                      // meters_virtual_count – virtuelle Zähler (optional)
+            AMS_filament_stu::online,      // statu – Status der Spule (offline, online, NFC_waiting)
+            AMS_filament_motion::idle,     // motion_set – aktuelle Bewegung / Zustand (before_pull_back, need_pull_back, …)
+            0xFFFF                  // pressure – Druckwert / optionaler Wert für den Extruder
+        },
+        { 
+            "GFG01", 0xFF, 0xFF, 0xFF, 0xFF, 220, 240, "PETG", 0, 0, AMS_filament_stu::online, AMS_filament_motion::idle, 0xFFFF 
+        },
+        { 
+            "GFG02", 0xFF, 0xFF, 0xFF, 0xFF, 220, 240, "PETG", 0, 0, AMS_filament_stu::online, AMS_filament_motion::idle, 0xFFFF 
+        },
+        { 
+            "GFG03", 0xFF, 0xFF, 0xFF, 0xFF, 220, 240, "PETG", 0, 0, AMS_filament_stu::online, AMS_filament_motion::idle, 0xFFFF 
+        }
+    },
+    0xFF,       // BambuBus_now_filament_num – keine aktive Spule
+    0x00,       // filament_use_flag – Flags für benutzte Spulen
+    Bambubus_version, // version – aktuelle Firmwareversion
+    0x40614061  // check – Prüfsumme / Magic Number zur Validierung
+};
 
 /*bool Bambubus_read()
 {
-    flash_save_struct *ptr = (flash_save_struct *)(use_flash_addr);
-    if ((ptr->check == 0x40614061) && (ptr->version == Bambubus_version))
-    {
-        memcpy(&data_save, ptr, sizeof(data_save));
+    const esp_partition_t* partition = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA,
+        ESP_PARTITION_SUBTYPE_ANY,
+        "storage"
+    );
+
+    if (!partition) {
+        const char msg[] = "Fehler: Partition 'storage' nicht gefunden!\n";
+        Debug_log_write(msg);
+        return false;
+    }
+
+    flash_save_struct temp;
+    esp_err_t err = esp_partition_read(partition, Bambubus_flash_addr, &temp, sizeof(temp));
+    if (err != ESP_OK) {
+        char msg[64];
+        int len = snprintf(msg, sizeof(msg), "Fehler beim Lesen Bambubus Flash: %d\n", err);
+        Debug_log_write_num(msg, len);
+        return false;
+    }
+
+    if (temp.check == 0x40614061 && temp.version == Bambubus_version) {
+        memcpy(&data_save, &temp, sizeof(data_save));
         return true;
     }
+
+    const char msg[] = "Bambubus Flash-Daten ungültig oder Version falsch!\n";
+    Debug_log_write(msg);
     return false;
 }*/
 
-bool Bambubus_read()
+bool Bambubus_read() {
+    flash_save_struct temp;
+
+    if (!Flash_read(&temp, sizeof(temp), Bambubus_flash_addr)) {
+        printf("Bambubus_read: Flash_read fehlgeschlagen!\n");
+        return false;
+    }
+
+    if (temp.check != 0x40614061 || temp.version != Bambubus_version) {
+        printf("Bambubus_read: Daten ungültig oder Version falsch!\n");
+        return false;
+    }
+
+    memcpy(&data_save, &temp, sizeof(data_save));
+    return true;
+}
+
+/*bool Bambubus_read()
 {
     // Fake Filament-Werte setzen
     for (int i = 0; i < 4; i++)
@@ -88,16 +155,20 @@ bool Bambubus_read()
     data_save.version = Bambubus_version;
 
     return true; // immer erfolgreich
-}
+}*/
 
 bool Bambubus_need_to_save = false;
 void Bambubus_set_need_to_save()
 {
     Bambubus_need_to_save = true;
 }
+
 void Bambubus_save()
 {
-    //Flash_saves(&data_save, sizeof(data_save), use_flash_addr);
+    if (!Flash_saves(&data_save, sizeof(data_save), Bambubus_flash_addr)) {
+        const char msg[] = "Fehler: Bambubus Flash speichern fehlgeschlagen!\n";
+        Debug_log_write(msg);
+    }
 }
 
 int get_now_filament_num()
@@ -139,7 +210,11 @@ void set_filament_online(int num, bool if_online)
         }
         else
         {
+#ifdef _Bambubus_DEBUG_mode_
+            data_save.filament[num].statu = AMS_filament_stu::online;
+#else
             data_save.filament[num].statu = AMS_filament_stu::offline;
+#endif // DEBUG
             set_filament_motion(num, AMS_filament_motion::idle);
         }
     }
