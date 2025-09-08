@@ -35,6 +35,8 @@ void init_ota_webserial() {
     msg += "<ul>";
     msg += "<li><a href=\"/webserial\" target=\"_blank\">Zur WebSerial-Konsole</a></li>";
     msg += "<br>";
+    msg += "<li><a href=\"/storage\">AMS Speicher</a></li>";
+    msg += "<br>";
     msg += "<li><a href=\"/wifi\">WiFi Configuration Panel</a></li>";
     msg += "<li><a href=\"/api/wifi/status\">WiFi Status (JSON API)</a></li>";
     msg += "<li><a href=\"/api/wifi/configlist\">Saved Networks (JSON API)</a></li>";
@@ -53,6 +55,94 @@ void init_ota_webserial() {
       esp_register_shutdown_handler([]() {
           ESP.restart();
       });
+  });
+
+  // Handler für "/storage"
+  server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String page = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+      page += "<title>ESP32 Storage Data</title>";
+      page += "<style>";
+      page += "body { font-family: Arial, sans-serif; margin: 20px; }";
+      page += "h1 { color: #333; }";
+      page += "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }";
+      page += "th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }";
+      page += "th { background-color: #f2f2f2; }";
+      page += "</style></head><body>";
+      
+      page += "<h1>📦 ESP32 Storage Data</h1>";
+      page += "<p>Firmware built at: ";
+      page += COMPILE_DATE;
+      page += " ";
+      page += COMPILE_TIME;
+      page += "</p>";
+
+      // ---- Bambubus Daten ----
+      page += "<h2>🧵 Bambubus</h2>";
+      page += "<table><tr><th>Field</th><th>Value</th></tr>";
+      page += "<tr><td>Now Filament Num</td><td>" + String(data_save.BambuBus_now_filament_num) + "</td></tr>";
+      page += "<tr><td>Filament Use Flag</td><td>" + String(data_save.filament_use_flag) + "</td></tr>";
+      page += "<tr><td>Version</td><td>" + String(data_save.version) + "</td></tr>";
+      page += "<tr><td>Check</td><td>0x" + String(data_save.check, HEX) + "</td></tr>";
+      page += "</table>";
+
+      // Filament Array
+      page += "<h3>Filaments</h3><table>";
+      page += "<tr><th>#</th><th>ID</th><th>Name</th><th>Temp Min</th><th>Temp Max</th><th>Color (RGBA)</th><th>Meters</th><th>Status</th><th>Motion</th></tr>";
+      for (int i = 0; i < 4; i++) {
+          page += "<tr>";
+          page += "<td>" + String(i) + "</td>";
+          page += "<td>" + String(data_save.filament[i].ID) + "</td>";
+          page += "<td>" + String(data_save.filament[i].name) + "</td>";
+          page += "<td>" + String(data_save.filament[i].temperature_min) + "</td>";
+          page += "<td>" + String(data_save.filament[i].temperature_max) + "</td>";
+          page += "<td>R:" + String(data_save.filament[i].color_R) + 
+                  " G:" + String(data_save.filament[i].color_G) + 
+                  " B:" + String(data_save.filament[i].color_B) + 
+                  " A:" + String(data_save.filament[i].color_A) + "</td>";
+          page += "<td>" + String(data_save.filament[i].meters, 2) + "</td>";
+
+          // Status – Zahl + Name
+          String statusStr;
+          switch (data_save.filament[i].statu) {
+              case AMS_filament_stu::offline: statusStr = "offline"; break;
+              case AMS_filament_stu::online:  statusStr = "online"; break;
+              case AMS_filament_stu::NFC_waiting: statusStr = "NFC_waiting"; break;
+          }
+          page += "<td>" + String((int)data_save.filament[i].statu) + " (" + statusStr + ")</td>";
+
+          // Motion – Zahl + Name
+          String motionStr;
+          switch (data_save.filament[i].motion_set) {
+              case AMS_filament_motion::before_pull_back: motionStr = "before_pull_back"; break;
+              case AMS_filament_motion::need_pull_back:   motionStr = "need_pull_back"; break;
+              case AMS_filament_motion::need_send_out:    motionStr = "need_send_out"; break;
+              case AMS_filament_motion::on_use:           motionStr = "on_use"; break;
+              case AMS_filament_motion::idle:             motionStr = "idle"; break;
+          }
+          page += "<td>" + String((int)data_save.filament[i].motion_set) + " (" + motionStr + ")</td>";
+
+          page += "</tr>";
+      }
+      page += "</table>";
+
+      // ---- Motion Control Daten ----
+      page += "<h2>🎛️ Motion Control</h2>";
+      page += "<table><tr><th>Field</th><th>Value</th></tr>";
+      page += "<tr><td>Check</td><td>0x" + String(Motion_control_data_save.check, HEX) + "</td></tr>";
+      page += "</table>";
+
+      // Motion_control_dir Array
+      page += "<h3>Motion Control Dir</h3>";
+      page += "<table><tr><th>Index</th><th>Value</th></tr>";
+      for (int i = 0; i < 4; i++) {
+          page += "<tr><td>" + String(i) + "</td><td>" + String(Motion_control_data_save.Motion_control_dir[i]) + "</td></tr>";
+      }
+      page += "</table>";
+
+      page += "<p><a href='/'>⬅️ Back to main page</a></p>";
+      page += "</body></html>";
+
+      request->send(200, "text/html", page);
   });
 
    ArduinoOTA

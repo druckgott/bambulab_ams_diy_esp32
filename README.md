@@ -76,6 +76,17 @@ According to [Bambulab Wiki – AMS Connector Pinout](https://wiki.bambulab.com/
 
 ```
 
+# 📦 Flash Storage on ESP32
+
+This project uses a dedicated **Flash partition (`storage`)** to persist data structures.  
+This ensures that settings remain available even after a restart or OTA update.
+
+---
+
+## 🗂️ Partitioning
+
+The partition is defined in `partitions.csv`.
+
 ## 🖼️ Pictures
 
 ![Alternativtext](images/ams.jpg)

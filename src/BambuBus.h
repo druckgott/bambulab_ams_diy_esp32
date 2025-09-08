@@ -48,6 +48,35 @@ extern "C"
         BambuBus_AMS = 0x0700,
         BambuBus_AMS_lite = 0x1200,
     };
+
+    struct _filament
+    {
+        char ID[8];
+        uint8_t color_R;
+        uint8_t color_G;
+        uint8_t color_B;
+        uint8_t color_A;
+        int16_t temperature_min;
+        int16_t temperature_max;
+        char name[20];
+
+        float meters;
+        uint64_t meters_virtual_count;
+        AMS_filament_stu statu;
+        AMS_filament_motion motion_set;
+        uint16_t pressure;
+    };
+
+    struct alignas(4) flash_save_struct
+    {
+        _filament filament[4];
+        int BambuBus_now_filament_num;
+        uint8_t filament_use_flag;
+        uint32_t version;
+        uint32_t check;
+    };
+
+    extern flash_save_struct data_save;
     extern void BambuBus_init();
     extern BambuBus_package_type BambuBus_run();
 #define max_filament_num 4
