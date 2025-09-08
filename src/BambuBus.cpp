@@ -122,9 +122,16 @@ flash_save_struct data_save = {
 
 bool Bambubus_read() {
     flash_save_struct temp;
-    if (!Flash_read(&temp, sizeof(temp), Bambubus_flash_addr)) return false;
 
-    if (temp.check != 0x40614061 || temp.version != Bambubus_version) return false;
+    if (!Flash_read(&temp, sizeof(temp), Bambubus_flash_addr)) {
+        printf("Bambubus_read: Flash_read fehlgeschlagen!\n");
+        return false;
+    }
+
+    if (temp.check != 0x40614061 || temp.version != Bambubus_version) {
+        printf("Bambubus_read: Daten ungültig oder Version falsch!\n");
+        return false;
+    }
 
     memcpy(&data_save, &temp, sizeof(data_save));
     return true;

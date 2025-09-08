@@ -168,24 +168,22 @@ Motion_control_save_struct Motion_control_data_save alignas(4) = {
     return false;
 }*/
 
-bool Motion_control_read()
-{
+bool Motion_control_read() {
     Motion_control_save_struct temp;
 
-    // Direkt den globalen Flash_read verwenden
+    // Lese die Daten über den globalen Flash_read (NVS-basiert)
     if (!Flash_read(&temp, sizeof(temp), Motion_control_flash_addr)) {
-        const char msg[] = "Fehler beim Lesen Motion_control Flash!\n";
-        Debug_log_write(msg);
+        printf("Motion_control_read: Fehler beim Lesen Motion_control Flash!\n");
         return false;
     }
 
+    // Prüfen von Checksum
     if (temp.check == 0x40614061) {
         memcpy(&Motion_control_data_save, &temp, sizeof(Motion_control_save_struct));
         return true;
     }
 
-    const char msg[] = "Motion_control Flash-Daten ungültig!\n";
-    Debug_log_write(msg);
+    printf("Motion_control_read: Motion_control Flash-Daten ungültig!\n");
     return false;
 }
 
