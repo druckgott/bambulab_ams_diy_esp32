@@ -57,93 +57,142 @@ void init_ota_webserial() {
       });
   });
 
-  // Handler für "/storage"
-  server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String page = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
-      page += "<title>ESP32 Storage Data</title>";
-      page += "<style>";
-      page += "body { font-family: Arial, sans-serif; margin: 20px; }";
-      page += "h1 { color: #333; }";
-      page += "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }";
-      page += "th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }";
-      page += "th { background-color: #f2f2f2; }";
-      page += "</style></head><body>";
+  server.on("/api/storage", HTTP_GET, [](AsyncWebServerRequest *request){
+      String json = "{";
+      json += "\"BambuBus_now_filament_num\":" + String(data_save.BambuBus_now_filament_num) + ",";
+      json += "\"filament_use_flag\":" + String(data_save.filament_use_flag) + ",";
+      json += "\"version\":" + String(data_save.version) + ",";
+      json += "\"check\":" + String(data_save.check) + ",";  // als Dezimalwert
       
-      page += "<h1>📦 ESP32 Storage Data</h1>";
-      page += "<p>Firmware built at: ";
-      page += COMPILE_DATE;
-      page += " ";
-      page += COMPILE_TIME;
-      page += "</p>";
-
-      // ---- Bambubus Daten ----
-      page += "<h2>🧵 Bambubus</h2>";
-      page += "<table><tr><th>Field</th><th>Value</th></tr>";
-      page += "<tr><td>Now Filament Num</td><td>" + String(data_save.BambuBus_now_filament_num) + "</td></tr>";
-      page += "<tr><td>Filament Use Flag</td><td>" + String(data_save.filament_use_flag) + "</td></tr>";
-      page += "<tr><td>Version</td><td>" + String(data_save.version) + "</td></tr>";
-      page += "<tr><td>Check</td><td>0x" + String(data_save.check, HEX) + "</td></tr>";
-      page += "</table>";
-
-      // Filament Array
-      page += "<h3>Filaments</h3><table>";
-      page += "<tr><th>#</th><th>ID</th><th>Name</th><th>Temp Min</th><th>Temp Max</th><th>Color (RGBA)</th><th>Meters</th><th>Status</th><th>Motion</th></tr>";
+      json += "\"filaments\":[";
       for (int i = 0; i < 4; i++) {
-          page += "<tr>";
-          page += "<td>" + String(i) + "</td>";
-          page += "<td>" + String(data_save.filament[i].ID) + "</td>";
-          page += "<td>" + String(data_save.filament[i].name) + "</td>";
-          page += "<td>" + String(data_save.filament[i].temperature_min) + "</td>";
-          page += "<td>" + String(data_save.filament[i].temperature_max) + "</td>";
-          page += "<td>R:" + String(data_save.filament[i].color_R) + 
-                  " G:" + String(data_save.filament[i].color_G) + 
-                  " B:" + String(data_save.filament[i].color_B) + 
-                  " A:" + String(data_save.filament[i].color_A) + "</td>";
-          page += "<td>" + String(data_save.filament[i].meters, 2) + "</td>";
-
-          // Status – Zahl + Name
-          String statusStr;
-          switch (data_save.filament[i].statu) {
-              case AMS_filament_stu::offline: statusStr = "offline"; break;
-              case AMS_filament_stu::online:  statusStr = "online"; break;
-              case AMS_filament_stu::NFC_waiting: statusStr = "NFC_waiting"; break;
-          }
-          page += "<td>" + String((int)data_save.filament[i].statu) + " (" + statusStr + ")</td>";
-
-          // Motion – Zahl + Name
-          String motionStr;
-          switch (data_save.filament[i].motion_set) {
-              case AMS_filament_motion::before_pull_back: motionStr = "before_pull_back"; break;
-              case AMS_filament_motion::need_pull_back:   motionStr = "need_pull_back"; break;
-              case AMS_filament_motion::need_send_out:    motionStr = "need_send_out"; break;
-              case AMS_filament_motion::on_use:           motionStr = "on_use"; break;
-              case AMS_filament_motion::idle:             motionStr = "idle"; break;
-          }
-          page += "<td>" + String((int)data_save.filament[i].motion_set) + " (" + motionStr + ")</td>";
-
-          page += "</tr>";
+          json += "{";
+          json += "\"ID\":\"" + String(data_save.filament[i].ID) + "\",";
+          json += "\"name\":\"" + String(data_save.filament[i].name) + "\",";
+          json += "\"temperature_min\":" + String(data_save.filament[i].temperature_min) + ",";
+          json += "\"temperature_max\":" + String(data_save.filament[i].temperature_max) + ",";
+          json += "\"color_R\":" + String(data_save.filament[i].color_R) + ",";
+          json += "\"color_G\":" + String(data_save.filament[i].color_G) + ",";
+          json += "\"color_B\":" + String(data_save.filament[i].color_B) + ",";
+          json += "\"color_A\":" + String(data_save.filament[i].color_A) + ",";
+          json += "\"meters\":" + String(data_save.filament[i].meters, 2) + ",";
+          json += "\"statu\":" + String((int)data_save.filament[i].statu) + ",";
+          json += "\"motion_set\":" + String((int)data_save.filament[i].motion_set);
+          json += "}";
+          if (i < 3) json += ",";
       }
-      page += "</table>";
-
-      // ---- Motion Control Daten ----
-      page += "<h2>🎛️ Motion Control</h2>";
-      page += "<table><tr><th>Field</th><th>Value</th></tr>";
-      page += "<tr><td>Check</td><td>0x" + String(Motion_control_data_save.check, HEX) + "</td></tr>";
-      page += "</table>";
-
-      // Motion_control_dir Array
-      page += "<h3>Motion Control Dir</h3>";
-      page += "<table><tr><th>Index</th><th>Value</th></tr>";
+      json += "],";  // ← Komma nach Array unbedingt
+      
+      json += "\"Motion_check\":" + String(Motion_control_data_save.check) + ",";  // Dezimalwert
+      json += "\"Motion_dir\":[";
       for (int i = 0; i < 4; i++) {
-          page += "<tr><td>" + String(i) + "</td><td>" + String(Motion_control_data_save.Motion_control_dir[i]) + "</td></tr>";
+          json += String(Motion_control_data_save.Motion_control_dir[i]);
+          if (i < 3) json += ",";
       }
-      page += "</table>";
+      json += "]";
+      json += "}";
 
-      page += "<p><a href='/'>⬅️ Back to main page</a></p>";
-      page += "</body></html>";
-
-      request->send(200, "text/html", page);
+      request->send(200, "application/json", json);
   });
+
+server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String page = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+    page += "<title>ESP32 Storage Data</title>";
+    page += "<style>";
+    page += "body { font-family: Arial, sans-serif; margin: 20px; }";
+    page += "h1 { color: #333; }";
+    page += "table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }";
+    page += "th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }";
+    page += "th { background-color: #f2f2f2; }";
+    page += "</style></head><body>";
+
+    page += "<h1>📦 ESP32 Storage Data</h1>";
+    page += "<p>Firmware built at: ";
+    page += COMPILE_DATE;
+    page += " ";
+    page += COMPILE_TIME;
+    page += "</p>";
+
+    // Bambubus Tabelle
+    page += "<h2>🧵 Bambubus</h2>";
+    page += "<table id='bambuBusTable'><tr><th>Field</th><th>Value</th></tr>";
+    page += "<tr><td>Now Filament Num</td><td id='bb_now_filament_num'>" + String(data_save.BambuBus_now_filament_num) + "</td></tr>";
+    page += "<tr><td>Filament Use Flag</td><td id='bb_filament_use_flag'>" + String(data_save.filament_use_flag) + "</td></tr>";
+    page += "<tr><td>Version</td><td id='bb_version'>" + String(data_save.version) + "</td></tr>";
+    page += "<tr><td>Check</td><td id='bb_check'>0x" + String(data_save.check, HEX) + "</td></tr>";
+    page += "</table>";
+
+    // Filament Tabelle
+    page += "<h3>Filaments</h3>";
+    page += "<table id='filamentTable'><tr><th>#</th><th>ID</th><th>Name</th><th>Temp Min</th><th>Temp Max</th><th>Color (RGBA)</th><th>Meters</th><th>Status</th><th>Motion</th></tr>";
+    for (int i = 0; i < 4; i++) {
+        page += "<tr>";
+        page += "<td>" + String(i) + "</td>";
+        page += "<td id='f_" + String(i) + "_ID'>" + String(data_save.filament[i].ID) + "</td>";
+        page += "<td id='f_" + String(i) + "_name'>" + String(data_save.filament[i].name) + "</td>";
+        page += "<td id='f_" + String(i) + "_temp_min'>" + String(data_save.filament[i].temperature_min) + "</td>";
+        page += "<td id='f_" + String(i) + "_temp_max'>" + String(data_save.filament[i].temperature_max) + "</td>";
+        page += "<td id='f_" + String(i) + "_color'>R:" + String(data_save.filament[i].color_R) + " G:" + String(data_save.filament[i].color_G) + " B:" + String(data_save.filament[i].color_B) + " A:" + String(data_save.filament[i].color_A) + "</td>";
+        page += "<td id='f_" + String(i) + "_meters'>" + String(data_save.filament[i].meters,2) + "</td>";
+        page += "<td id='f_" + String(i) + "_status'>" + String((int)data_save.filament[i].statu) + "</td>";
+        page += "<td id='f_" + String(i) + "_motion'>" + String((int)data_save.filament[i].motion_set) + "</td>";
+        page += "</tr>";
+    }
+    page += "</table>";
+
+    // Motion Control
+    page += "<h2>🎛️ Motion Control</h2>";
+    page += "<table id='motionTable'><tr><th>Field</th><th>Value</th></tr>";
+    page += "<tr><td>Check</td><td id='m_check'>0x" + String(Motion_control_data_save.check, HEX) + "</td></tr>";
+    page += "</table>";
+
+    // Motion Control Dir
+    page += "<h3>Motion Control Dir</h3>";
+    page += "<table id='motionDirTable'><tr><th>Index</th><th>Value</th></tr>";
+    for(int i=0;i<4;i++){
+        page += "<tr><td>" + String(i) + "</td><td id='md_" + String(i) + "'>" + String(Motion_control_data_save.Motion_control_dir[i]) + "</td></tr>";
+    }
+    page += "</table>";
+
+    page += "<p><a href='/'>⬅️ Back to main page</a></p>";
+
+    // JS
+    page += "<script>";
+    page += "async function updateStorage() {";
+    page += "  const res = await fetch('/api/storage');";
+    page += "  const data = await res.json();";
+
+    page += "  document.getElementById('bb_now_filament_num').innerText = data.BambuBus_now_filament_num;";
+    page += "  document.getElementById('bb_filament_use_flag').innerText = data.filament_use_flag;";
+    page += "  document.getElementById('bb_version').innerText = data.version;";
+    page += "  document.getElementById('bb_check').innerText = data.check;";
+
+    page += "  for(let i=0;i<4;i++){";
+    page += "    const f = data.filaments[i];";
+    page += "    document.getElementById('f_'+i+'_ID').innerText = f.ID;";
+    page += "    document.getElementById('f_'+i+'_name').innerText = f.name;";
+    page += "    document.getElementById('f_'+i+'_temp_min').innerText = f.temperature_min;";
+    page += "    document.getElementById('f_'+i+'_temp_max').innerText = f.temperature_max;";
+    page += "    document.getElementById('f_'+i+'_color').innerHTML = '<span style=\"display:inline-block;width:20px;height:20px;margin-right:5px;background-color:rgba(' + f.color_R + ',' + f.color_G + ',' + f.color_B + ',' + (f.color_A/255) + ');\"></span>' + 'R:'+f.color_R+' G:'+f.color_G+' B:'+f.color_B+' A:'+f.color_A;";
+    page += "    let statusColor='', statusStr='';";
+    page += "    switch(f.statu){ case 0: statusColor='red'; statusStr='offline'; break; case 1: statusColor='green'; statusStr='online'; break; case 2: statusColor='orange'; statusStr='NFC_waiting'; break; }";
+    page += "    document.getElementById('f_'+i+'_status').innerHTML = '<span style=\"display:inline-block;width:20px;height:20px;margin-right:5px;background-color:' + statusColor + ';\"></span> ' + f.statu + ' (' + statusStr + ')';";
+    page += "    let motionStr='';";
+    page += "    switch(f.motion_set){ case 0: motionStr='before_pull_back'; break; case 1: motionStr='need_pull_back'; break; case 2: motionStr='need_send_out'; break; case 3: motionStr='on_use'; break; case 4: motionStr='idle'; break; }";
+    page += "    document.getElementById('f_'+i+'_motion').innerText = f.motion_set + ' (' + motionStr + ')';";
+    page += "  }";
+
+    page += "  document.getElementById('m_check').innerText = data.Motion_check;";
+    page += "  for(let i=0;i<4;i++){ document.getElementById('md_'+i).innerText = data.Motion_dir[i]; }";
+
+    page += "}";
+    page += "setInterval(updateStorage, 500);";
+    page += "updateStorage();";
+    page += "</script>";
+
+    page += "</body></html>";
+    request->send(200, "text/html", page);
+});
 
    ArduinoOTA
     .onStart([]() {

@@ -81,17 +81,14 @@ According to [Bambulab Wiki – AMS Connector Pinout](https://wiki.bambulab.com/
 This project uses a dedicated **Flash partition (`storage`)** to persist data structures.  
 This ensures that settings remain available even after a restart or OTA update.
 
----
-
-## 🗂️ Partitioning
-
-The partition is defined in `partitions.csv`.
 
 ## 🖼️ Pictures
 
 ![Alternativtext](images/ams.jpg)
 
 ![Alternativtext](images/second_ams.jpg)
+
+![Alternativtext](images/webinterface.jpg)
 
 ![Alternativtext](images/webserial.jpg)
 

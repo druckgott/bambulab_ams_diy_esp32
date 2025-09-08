@@ -210,7 +210,11 @@ void set_filament_online(int num, bool if_online)
         }
         else
         {
+#ifdef _Bambubus_DEBUG_mode_
+            data_save.filament[num].statu = AMS_filament_stu::online;
+#else
             data_save.filament[num].statu = AMS_filament_stu::offline;
+#endif // DEBUG
             set_filament_motion(num, AMS_filament_motion::idle);
         }
     }
