@@ -36,6 +36,7 @@ void init_ota_webserial() {
     msg += "<li><a href=\"/webserial\" target=\"_blank\">Zur WebSerial-Konsole</a></li>";
     msg += "<br>";
     msg += "<li><a href=\"/storage\">AMS Speicher</a></li>";
+    msg += "<li><a href=\"/api/storage\">AMS Speicher (json)</a></li>";
     msg += "<br>";
     msg += "<li><a href=\"/wifi\">WiFi Configuration Panel</a></li>";
     msg += "<li><a href=\"/api/wifi/status\">WiFi Status (JSON API)</a></li>";
@@ -89,7 +90,22 @@ void init_ota_webserial() {
           json += String(Motion_control_data_save.Motion_control_dir[i]);
           if (i < 3) json += ",";
       }
+      json += "],";
+      //json += "}";
+
+          // --- neu: heartbeat-Daten ---
+      json += "\"heartbeat\":" + String(ram_core.heartbeat) + ",";
+      json += "\"last_heartbeat_time\":" + String(ram_core.last_heartbeat_time) + ",";
+      json += "\"last_heartbeat_len\":" + String(ram_core.last_heartbeat_len) + ",";
+      
+      // Paketinhalt als Array
+      json += "\"last_heartbeat_buf\":[";
+      for (int i = 0; i < ram_core.last_heartbeat_len; i++) {
+          json += String(ram_core.last_heartbeat_buf[i]);
+          if (i < ram_core.last_heartbeat_len - 1) json += ",";
+      }
       json += "]";
+      
       json += "}";
 
       request->send(200, "application/json", json);
