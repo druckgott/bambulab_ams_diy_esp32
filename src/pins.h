@@ -89,16 +89,7 @@
 #define Debug_log_on
 #define Debug_log_baudrate 115200
 
-#define _Bambubus_DEBUG_mode_
-#define _Bambubus_DEBUG_motion_
-
-#ifdef _Bambubus_DEBUG_motion_
-    //#define DEBUG_MOTION      AMS_filament_motion::before_pull_back
-    //#define DEBUG_MOTION      AMS_filament_motion::need_pull_back
-    //#define DEBUG_MOTION      AMS_filament_motion::need_send_out
-    #define DEBUG_MOTION      AMS_filament_motion::on_use
-    //#define DEBUG_MOTION      AMS_filament_motion::idle
-#endif
+//#define _Bambubus_DEBUG_mode_
 
 //OTA Task
 #define OTA_TASK_DELAY_MS 100  // Verzögerung für OTA-Task in Millisekunden

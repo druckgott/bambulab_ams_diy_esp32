@@ -74,7 +74,7 @@ void MC_PULL_ONLINE_read()
             DEBUG_float(MC_ONLINE_key_stu_raw[i],3);
             DEBUG_MY("  通道：");
             DEBUG_float(i,1);
-            DEBUG_MY("   \n");
+            DEBUG_MY("   ");
         }
         */
         if (MC_PULL_stu_raw[i] > PULL_voltage_up) // 大于1.85V,表示压力过高
@@ -140,7 +140,7 @@ bool Motion_control_read() {
 
     // Lese die Daten über den globalen Flash_read (NVS-basiert)
     if (!Flash_read(&temp, sizeof(temp), Motion_control_flash_addr)) {
-        printf("Motion_control_read: Fehler beim Lesen Motion_control Flash!\n");
+        printf("Motion_control_read: Fehler beim Lesen Motion_control Flash!");
         return false;
     }
 
@@ -150,7 +150,7 @@ bool Motion_control_read() {
         return true;
     }
 
-    printf("Motion_control_read: Motion_control Flash-Daten ungültig!\n");
+    printf("Motion_control_read: Motion_control Flash-Daten ungültig!");
     return false;
 }
 
@@ -172,7 +172,7 @@ bool Motion_control_read() {
 void Motion_control_save()
 {
     if (!Flash_saves(&Motion_control_data_save, sizeof(Motion_control_save_struct), Motion_control_flash_addr)) {
-        const char msg[] = "Fehler: Motion_control Flash speichern fehlgeschlagen!\n";
+        const char msg[] = "Fehler: Motion_control Flash speichern fehlgeschlagen!";
         Debug_log_write(msg);
     }
 }
@@ -1032,7 +1032,7 @@ void Motion_control_init() // 初始化所有运动和传感器
             MOTOR_CONTROL[i].run(0); // 根据状态信息来驱动电机
         }
         char s[100];
-        int n = sprintf(s, "%d\n", (int)(MC_PULL_stu_raw[3] * 1000));
+        int n = sprintf(s, "%d", (int)(MC_PULL_stu_raw[3] * 1000));
         DEBUG_num(s, n);
     }*/
 

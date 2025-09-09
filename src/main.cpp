@@ -132,6 +132,8 @@ void Show_SYS_RGB(int BambuBUS_status)
     }
 }
 
+/*
+unsigned long last_debug_time = 0; // für 1‑Sekunden-Ticker
 BambuBus_package_type is_first_run = BambuBus_package_type::NONE;
 void loop()
 {
@@ -175,23 +177,23 @@ void loop()
             is_first_run = stu;
             if (stu == BambuBus_package_type::ERROR)
             {
-                DEBUG_MY("BambuBus_error\n"); // error
+                DEBUG_MY("BambuBus_error"); // error
             }
             else if (stu == BambuBus_package_type::heartbeat)
             {
-                DEBUG_MY("BambuBus_online\n"); // Online
+                DEBUG_MY("BambuBus_online"); // Online
             }
             else if (device_type == BambuBus_AMS_lite)
             {
-                DEBUG_MY("Run_To_AMS_lite\n"); // Online AMS lite
+                DEBUG_MY("Run_To_AMS_lite"); // Online AMS lite
             }
             else if (device_type == BambuBus_AMS)
             {
-                DEBUG_MY("Run_To_AMS\n"); // Online AMS
+                DEBUG_MY("Run_To_AMS"); // Online AMS
             }
             else
             {
-                DEBUG_MY("Running Unknown ???\n");
+                DEBUG_MY("Running Unknown ???");
             }
         }
 
@@ -199,5 +201,81 @@ void loop()
         {
             Motion_control_run(error);
         }
+
+        // **Neues: 1‑Sekunden-Ticker für WebSerial**
+        unsigned long now_millis = millis();
+        if (now_millis - last_debug_time >= 1000) {
+            last_debug_time = now_millis;
+            DEBUG_MY("Debug: WebSerial alive");
+        }
     }
+}*/
+
+BambuBus_package_type is_first_run = BambuBus_package_type::NONE;
+unsigned long last_sys_rgb_time = 0;    // 3‑Sekunden-Ticker für LEDs
+
+void loop()
+{
+    // BambuBus ausführen
+    BambuBus_package_type stu = BambuBus_run();
+    static int error = 0;
+    bool motion_can_run = false;
+    uint16_t device_type = get_now_BambuBus_device_type();
+
+    if (stu != BambuBus_package_type::NONE) // Daten vorhanden / offline
+    {
+        motion_can_run = true;
+        if (stu == BambuBus_package_type::ERROR) // Offline
+        {
+            error = -1;
+            // Offline → rote LED
+        }
+        else // Daten vorhanden
+        {
+            error = 0;
+            // Normaler Betrieb → weiße LED
+        }
+
+        // LEDs alle 3 Sekunden aktualisieren
+        unsigned long now = millis();
+        if (now - last_sys_rgb_time >= 3000) {
+            Show_SYS_RGB(error);
+            last_sys_rgb_time = now;
+        }
+    }
+
+    // Log-Ausgabe, wenn Pakettyp sich ändert
+    if (is_first_run != stu)
+    {
+        is_first_run = stu;
+        if (stu == BambuBus_package_type::ERROR)
+        {
+            DEBUG_MY("BambuBus_error"); // error
+        }
+        else if (stu == BambuBus_package_type::heartbeat)
+        {
+            DEBUG_MY("BambuBus_online"); // Online
+        }
+        else if (device_type == BambuBus_AMS_lite)
+        {
+            DEBUG_MY("Run_To_AMS_lite"); // Online AMS lite
+        }
+        else if (device_type == BambuBus_AMS)
+        {
+            DEBUG_MY("Run_To_AMS"); // Online AMS
+        }
+        else
+        {
+            DEBUG_MY("Running Unknown ???");
+        }
+    }
+
+    // Motion ausführen
+    if (motion_can_run)
+    {
+        Motion_control_run(error);
+    }
+
+    // Kurze Pause, damit AsyncServer & WebSerial arbeiten können
+    delay(1);
 }
