@@ -76,7 +76,18 @@ extern "C"
         uint32_t check;
     };
 
+    struct ram_core_struct {
+        uint32_t heartbeat;           // Heartbeat-Zähler
+        uint64_t last_heartbeat_time; // Zeitpunkt des letzten Pakets
+        uint8_t  last_heartbeat_buf[16]; // oder eine passende Größe für dein Paket
+        int      last_heartbeat_len;      // Länge des letzten Pakets
+    };
+
+    extern bool debugMotionEnabled;
+    extern int currentdebugNum;
+    extern AMS_filament_motion currentdebugMotion;
     extern flash_save_struct data_save;
+    extern ram_core_struct ram_core;
     extern void BambuBus_init();
     extern BambuBus_package_type BambuBus_run();
 #define max_filament_num 4

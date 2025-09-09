@@ -20,6 +20,10 @@ uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
 
+bool debugMotionEnabled = false;
+int currentdebugNum = 0;  // Default: erstes Filament
+AMS_filament_motion currentdebugMotion = AMS_filament_motion::on_use;
+
 uint8_t buf_X[1000];
 CRC8 _RX_IRQ_crcx(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
 // Event-Queue für UART-Interrupts
@@ -27,35 +31,6 @@ static QueueHandle_t uart_queue;
 
 // Forward-Deklaration deiner eigenen RX-Callback-Funktion
 extern void RX_IRQ(uint16_t data);
-
-/*struct _filament
-{
-    // AMS statu
-    char ID[8] = "GFG00";
-    uint8_t color_R = 0xFF;
-    uint8_t color_G = 0xFF;
-    uint8_t color_B = 0xFF;
-    uint8_t color_A = 0xFF;
-    int16_t temperature_min = 220;
-    int16_t temperature_max = 240;
-    char name[20] = "PETG";
-
-    float meters = 0;
-    uint64_t meters_virtual_count = 0;
-    AMS_filament_stu statu = AMS_filament_stu::online;
-    // printer_set
-    AMS_filament_motion motion_set = AMS_filament_motion::idle;
-    uint16_t pressure = 0xFFFF;
-};          
-
-struct alignas(4) flash_save_struct
-{
-    _filament filament[4];
-    int BambuBus_now_filament_num = 0xFF;
-    uint8_t filament_use_flag = 0x00;
-    uint32_t version = Bambubus_version;
-    uint32_t check = 0x40614061;
-} flash_save_struct;*/
 
 // Einmalige Definition mit Initialwerten
 flash_save_struct data_save = {
@@ -87,38 +62,12 @@ flash_save_struct data_save = {
     0x40614061  // check – Prüfsumme / Magic Number zur Validierung
 };
 
-/*bool Bambubus_read()
-{
-    const esp_partition_t* partition = esp_partition_find_first(
-        ESP_PARTITION_TYPE_DATA,
-        ESP_PARTITION_SUBTYPE_ANY,
-        "storage"
-    );
-
-    if (!partition) {
-        const char msg[] = "Fehler: Partition 'storage' nicht gefunden!\n";
-        Debug_log_write(msg);
-        return false;
-    }
-
-    flash_save_struct temp;
-    esp_err_t err = esp_partition_read(partition, Bambubus_flash_addr, &temp, sizeof(temp));
-    if (err != ESP_OK) {
-        char msg[64];
-        int len = snprintf(msg, sizeof(msg), "Fehler beim Lesen Bambubus Flash: %d\n", err);
-        Debug_log_write_num(msg, len);
-        return false;
-    }
-
-    if (temp.check == 0x40614061 && temp.version == Bambubus_version) {
-        memcpy(&data_save, &temp, sizeof(data_save));
-        return true;
-    }
-
-    const char msg[] = "Bambubus Flash-Daten ungültig oder Version falsch!\n";
-    Debug_log_write(msg);
-    return false;
-}*/
+ram_core_struct ram_core = {
+    0,                  // heartbeat startet bei 0
+    0,                  // last_heartbeat_time startet bei 0
+    {0},                // last_heartbeat_buf initial auf 0 setzen
+    0                   // last_heartbeat_len startet bei 0
+};
 
 bool Bambubus_read() {
     flash_save_struct temp;
@@ -137,26 +86,6 @@ bool Bambubus_read() {
     return true;
 }
 
-/*bool Bambubus_read()
-{
-    // Fake Filament-Werte setzen
-    for (int i = 0; i < 4; i++)
-    {
-        data_save.filament[i].meters = 3;                      // 3 Meter Beispiel
-        data_save.filament[i].motion_set = AMS_filament_motion::idle; // idle
-        data_save.filament[i].statu = AMS_filament_stu::online;      // online
-    }
-
-    data_save.BambuBus_now_filament_num = 0xFF; // keine aktive Spule
-    data_save.filament_use_flag = 0x00;        // Flag zurücksetzen
-
-    // Version & Check wie erwartet setzen
-    data_save.check = 0x40614061;
-    data_save.version = Bambubus_version;
-
-    return true; // immer erfolgreich
-}*/
-
 bool Bambubus_need_to_save = false;
 void Bambubus_set_need_to_save()
 {
@@ -169,6 +98,25 @@ void Bambubus_save()
         const char msg[] = "Fehler: Bambubus Flash speichern fehlgeschlagen!\n";
         Debug_log_write(msg);
     }
+}
+
+void on_heartbeat(uint8_t* buf, int length)
+{
+    // Zeit speichern
+    ram_core.last_heartbeat_time = get_time64();
+
+    // Heartbeat-Wert aus dem Paket extrahieren
+    if (length >= sizeof(uint32_t)) {
+        memcpy(&ram_core.heartbeat, buf, sizeof(uint32_t));
+    }
+
+    // Paket kopieren (optional)
+    int copy_len = (length < sizeof(ram_core.last_heartbeat_buf)) ? length : sizeof(ram_core.last_heartbeat_buf);
+    memcpy(ram_core.last_heartbeat_buf, buf, copy_len);
+    ram_core.last_heartbeat_len = copy_len;
+
+    // Debug
+    // printf("Heartbeat: %u, Zeit: %llu, Paket-Länge: %d\n", ram_core.heartbeat, ram_core.last_heartbeat_time, ram_core.last_heartbeat_len);
 }
 
 int get_now_filament_num()
@@ -185,6 +133,7 @@ void reset_filament_meters(int num)
     if (num < 4)
         data_save.filament[num].meters = 0;
 }
+
 void add_filament_meters(int num, float meters)
 {
     if (num < 4)
@@ -193,6 +142,7 @@ void add_filament_meters(int num, float meters)
             data_save.filament[num].meters += meters;
     }
 }
+
 float get_filament_meters(int num)
 {
     if (num < 4)
@@ -200,6 +150,7 @@ float get_filament_meters(int num)
     else
         return 0;
 }
+
 void set_filament_online(int num, bool if_online)
 {
     if (num < 4)
@@ -215,11 +166,13 @@ void set_filament_online(int num, bool if_online)
 #else
             data_save.filament[num].statu = AMS_filament_stu::offline;
 #endif // DEBUG
-            set_filament_motion(num, AMS_filament_motion::idle);
+            // Motion setzen
+            if (debugMotionEnabled && num == currentdebugNum) {
+                set_filament_motion(num, currentdebugMotion);
+            } else {
+                set_filament_motion(num, AMS_filament_motion::idle);
+            }
         }
-    }
-    else
-    {
     }
 }
 
@@ -241,6 +194,7 @@ bool get_filament_online(int num)
         return false;
     }
 }
+
 void set_filament_motion(int num, AMS_filament_motion motion)
 {
     if (num < 4)
@@ -266,6 +220,7 @@ void set_filament_motion(int num, AMS_filament_motion motion)
             }
     }
 }
+
 AMS_filament_motion get_filament_motion(int num)
 {
     if (num < 4)
@@ -273,6 +228,7 @@ AMS_filament_motion get_filament_motion(int num)
     else
         return AMS_filament_motion::idle;
 }
+
 bool BambuBus_if_on_print()
 {
     bool on_print = false;
@@ -1310,6 +1266,7 @@ BambuBus_package_type BambuBus_run()
         {
         case BambuBus_package_type::heartbeat:
             time_set = timex + 1000;
+            on_heartbeat(buf_X, data_length);
             break;
         case BambuBus_package_type::filament_motion_short:
             send_for_motion_short(buf_X, data_length);

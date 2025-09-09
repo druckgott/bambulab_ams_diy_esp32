@@ -135,39 +135,6 @@ Motion_control_save_struct Motion_control_data_save alignas(4) = {
     0x40614061      // check
 };
 
-/*bool Motion_control_read()
-{
-    const esp_partition_t* partition = esp_partition_find_first(
-        ESP_PARTITION_TYPE_DATA,
-        ESP_PARTITION_SUBTYPE_ANY,
-        "storage"
-    );
-
-    if (!partition) {
-        const char msg[] = "Fehler: Partition 'storage' nicht gefunden!\n";
-        Debug_log_write(msg);
-        return false;
-    }
-
-    Motion_control_save_struct temp;
-    esp_err_t err = esp_partition_read(partition, Motion_control_flash_addr, &temp, sizeof(temp));
-    if (err != ESP_OK) {
-        char msg[64];
-        int len = snprintf(msg, sizeof(msg), "Fehler beim Lesen Motion_control Flash: %d\n", err);
-        Debug_log_write_num(msg, len);
-        return false;
-    }
-
-    if (temp.check == 0x40614061) {
-        memcpy(&Motion_control_data_save, &temp, sizeof(Motion_control_save_struct));
-        return true;
-    }
-
-    const char msg[] = "Motion_control Flash-Daten ungültig!\n";
-    Debug_log_write(msg);
-    return false;
-}*/
-
 bool Motion_control_read() {
     Motion_control_save_struct temp;
 

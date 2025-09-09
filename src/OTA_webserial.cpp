@@ -36,6 +36,8 @@ void init_ota_webserial() {
     msg += "<li><a href=\"/webserial\" target=\"_blank\">Zur WebSerial-Konsole</a></li>";
     msg += "<br>";
     msg += "<li><a href=\"/storage\">AMS Speicher</a></li>";
+    msg += "<li><a href=\"/api/storage\">AMS Speicher (json)</a></li>";
+    msg += "<li><a href=\"/debug\">AMS Debug Switch</a></li>";
     msg += "<br>";
     msg += "<li><a href=\"/wifi\">WiFi Configuration Panel</a></li>";
     msg += "<li><a href=\"/api/wifi/status\">WiFi Status (JSON API)</a></li>";
@@ -89,7 +91,22 @@ void init_ota_webserial() {
           json += String(Motion_control_data_save.Motion_control_dir[i]);
           if (i < 3) json += ",";
       }
+      json += "],";
+      //json += "}";
+
+          // --- neu: heartbeat-Daten ---
+      json += "\"heartbeat\":" + String(ram_core.heartbeat) + ",";
+      json += "\"last_heartbeat_time\":" + String(ram_core.last_heartbeat_time) + ",";
+      json += "\"last_heartbeat_len\":" + String(ram_core.last_heartbeat_len) + ",";
+      
+      // Paketinhalt als Array
+      json += "\"last_heartbeat_buf\":[";
+      for (int i = 0; i < ram_core.last_heartbeat_len; i++) {
+          json += String(ram_core.last_heartbeat_buf[i]);
+          if (i < ram_core.last_heartbeat_len - 1) json += ",";
+      }
       json += "]";
+      
       json += "}";
 
       request->send(200, "application/json", json);
@@ -192,7 +209,78 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
 
     page += "</body></html>";
     request->send(200, "text/html", page);
-});
+  });
+
+  // === Debug-Webseite ===
+  server.on("/debug", HTTP_GET, [](AsyncWebServerRequest *request){
+      String page = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+      page += "<title>ESP32 Debug Control</title>";
+      page += "<style>";
+      page += "body { font-family: Arial; margin:20px; }";
+      page += "h1 { color:#333; }";
+      page += "label { display:block; margin-top:10px; }";
+      page += "select, input[type=number], input[type=checkbox] { margin-top:5px; padding:5px; }";
+      page += "button { margin-top:15px; padding:10px 15px; background:#4CAF50; color:white; border:none; cursor:pointer; }";
+      page += "button:hover { background:#45a049; }";
+      page += "</style></head><body>";
+
+      page += "<h1>🎛️ Debug Control</h1>";
+      page += "<form action='/api/setdebug' method='get'>";
+
+      // Checkbox Debug
+      page += "<label><input type='checkbox' name='debug' value='1'";
+      if (debugMotionEnabled) page += " checked";
+      page += "> Debug aktivieren</label>";
+
+      // Filament Nummer
+      page += "<label>Filament Nummer (0-3):</label>";
+      page += "<input type='number' name='num' min='0' max='3' value='" + String(currentdebugNum) + "'>";
+
+      // Motion Auswahl
+      page += "<label>Motion Modus:</label>";
+      page += "<select name='mode'>";
+      String modes[] = {"before_pull_back","need_pull_back","need_send_out","on_use","idle"};
+      int enumVals[] = {0,1,2,3,4};
+      for (int i=0;i<5;i++) {
+          page += "<option value='" + modes[i] + "'";
+          if ((int)currentdebugMotion == enumVals[i]) page += " selected";
+          page += ">" + modes[i] + "</option>";
+      }
+      page += "</select>";
+
+      page += "<br><button type='submit'>✅ Anwenden</button>";
+      page += "</form>";
+
+      page += "<p><a href='/'>⬅️ Zurück zur Hauptseite</a></p>";
+      page += "</body></html>";
+
+      request->send(200, "text/html", page);
+  });
+
+  // === API zum Setzen der Debug-Werte ===
+  server.on("/api/setdebug", HTTP_GET, [](AsyncWebServerRequest *request){
+      if (request->hasArg("debug")) {
+          debugMotionEnabled = (request->arg("debug") == "1");
+      } else {
+          debugMotionEnabled = false;
+      }
+      if (request->hasArg("num")) {
+          int n = request->arg("num").toInt();
+          if (n >= 0 && n < 4) currentdebugNum = n;
+      }
+      if (request->hasArg("mode")) {
+          String m = request->arg("mode");
+          if (m == "before_pull_back") currentdebugMotion = AMS_filament_motion::before_pull_back;
+          else if (m == "need_pull_back") currentdebugMotion = AMS_filament_motion::need_pull_back;
+          else if (m == "need_send_out") currentdebugMotion = AMS_filament_motion::need_send_out;
+          else if (m == "on_use") currentdebugMotion = AMS_filament_motion::on_use;
+          else if (m == "idle") currentdebugMotion = AMS_filament_motion::idle;
+      }
+      String res = "Debug Motion gesetzt: debug=" + String(debugMotionEnabled) +
+                  ", num=" + String(currentdebugNum) +
+                  ", mode=" + String((int)currentdebugMotion);
+      request->send(200, "text/plain", res);
+  });
 
    ArduinoOTA
     .onStart([]() {
