@@ -95,8 +95,8 @@
 #ifdef _Bambubus_DEBUG_motion_
     //#define DEBUG_MOTION      AMS_filament_motion::before_pull_back
     //#define DEBUG_MOTION      AMS_filament_motion::need_pull_back
-    #define DEBUG_MOTION      AMS_filament_motion::need_send_out
-    //#define DEBUG_MOTION      AMS_filament_motion::on_use
+    //#define DEBUG_MOTION      AMS_filament_motion::need_send_out
+    #define DEBUG_MOTION      AMS_filament_motion::on_use
     //#define DEBUG_MOTION      AMS_filament_motion::idle
 #endif
 

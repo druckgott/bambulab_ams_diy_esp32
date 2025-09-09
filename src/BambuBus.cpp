@@ -20,6 +20,10 @@ uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
 
+bool debugMotionEnabled = false;
+int currentdebugNum = 0;  // Default: erstes Filament
+AMS_filament_motion currentdebugMotion = AMS_filament_motion::on_use;
+
 uint8_t buf_X[1000];
 CRC8 _RX_IRQ_crcx(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
 // Event-Queue für UART-Interrupts
@@ -129,6 +133,7 @@ void reset_filament_meters(int num)
     if (num < 4)
         data_save.filament[num].meters = 0;
 }
+
 void add_filament_meters(int num, float meters)
 {
     if (num < 4)
@@ -137,6 +142,7 @@ void add_filament_meters(int num, float meters)
             data_save.filament[num].meters += meters;
     }
 }
+
 float get_filament_meters(int num)
 {
     if (num < 4)
@@ -144,6 +150,7 @@ float get_filament_meters(int num)
     else
         return 0;
 }
+
 void set_filament_online(int num, bool if_online)
 {
     if (num < 4)
@@ -159,16 +166,13 @@ void set_filament_online(int num, bool if_online)
 #else
             data_save.filament[num].statu = AMS_filament_stu::offline;
 #endif // DEBUG
-    // Motion setzen
-#ifdef _Bambubus_DEBUG_motion_
-        set_filament_motion(num, DEBUG_MOTION);
-#else
-        set_filament_motion(num, AMS_filament_motion::idle);
-#endif
+            // Motion setzen
+            if (debugMotionEnabled && num == currentdebugNum) {
+                set_filament_motion(num, currentdebugMotion);
+            } else {
+                set_filament_motion(num, AMS_filament_motion::idle);
+            }
         }
-    }
-    else
-    {
     }
 }
 
@@ -190,6 +194,7 @@ bool get_filament_online(int num)
         return false;
     }
 }
+
 void set_filament_motion(int num, AMS_filament_motion motion)
 {
     if (num < 4)
@@ -215,6 +220,7 @@ void set_filament_motion(int num, AMS_filament_motion motion)
             }
     }
 }
+
 AMS_filament_motion get_filament_motion(int num)
 {
     if (num < 4)
@@ -222,6 +228,7 @@ AMS_filament_motion get_filament_motion(int num)
     else
         return AMS_filament_motion::idle;
 }
+
 bool BambuBus_if_on_print()
 {
     bool on_print = false;

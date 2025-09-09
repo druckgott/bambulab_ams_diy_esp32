@@ -83,6 +83,9 @@ extern "C"
         int      last_heartbeat_len;      // Länge des letzten Pakets
     };
 
+    extern bool debugMotionEnabled;
+    extern int currentdebugNum;
+    extern AMS_filament_motion currentdebugMotion;
     extern flash_save_struct data_save;
     extern ram_core_struct ram_core;
     extern void BambuBus_init();
