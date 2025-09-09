@@ -92,9 +92,10 @@ void init_ota_webserial() {
           if (i < 3) json += ",";
       }
       json += "],";
-      //json += "}";
+      /*json += "]";
+      json += "}";*/
 
-          // --- neu: heartbeat-Daten ---
+      // --- neu: heartbeat-Daten ---
       json += "\"heartbeat\":" + String(ram_core.heartbeat) + ",";
       json += "\"last_heartbeat_time\":" + String(ram_core.last_heartbeat_time) + ",";
       json += "\"last_heartbeat_len\":" + String(ram_core.last_heartbeat_len) + ",";
@@ -227,6 +228,11 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
       page += "<h1>🎛️ Debug Control</h1>";
       page += "<form action='/api/setdebug' method='get'>";
 
+      // Checkbox für Bambubus Debug Mode
+      page += "<label><input type='checkbox' name='bambuDebug' value='1'";
+      if (bambuBusDebugMode) page += " checked";
+      page += "> Bambubus Debug Mode (immer online)</label>";
+
       // Checkbox Debug
       page += "<label><input type='checkbox' name='debug' value='1'";
       if (debugMotionEnabled) page += " checked";
@@ -259,6 +265,12 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
 
   // === API zum Setzen der Debug-Werte ===
   server.on("/api/setdebug", HTTP_GET, [](AsyncWebServerRequest *request){
+      
+      if (request->hasArg("bambuDebug")) {
+          bambuBusDebugMode = (request->arg("bambuDebug") == "1");
+      } else {
+          bambuBusDebugMode = false;
+      }
       if (request->hasArg("debug")) {
           debugMotionEnabled = (request->arg("debug") == "1");
       } else {
@@ -290,16 +302,14 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
       else // U_SPIFFS
         type = "filesystem";
       // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      //Serial.println("Start updating " + type);
     })
     .onEnd([]() {
-      //Serial.println("\nEnd");
+      // nach OTA wieder freigeben
     })
     .onProgress([](unsigned int progress, unsigned int total) {
       //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      //Serial.printf("Error[%u]: ", error);
       if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
       else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
       else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
@@ -320,7 +330,6 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
   );
 
   // WebSerial starten
-  //WebSerial.begin(&server);
   webSerial.onMessage([](const std::string& msg) { Serial.println(msg.c_str()); });
   webSerial.begin(&server);
   webSerial.setBuffer(100);

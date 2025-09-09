@@ -20,6 +20,7 @@ uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
 
+bool bambuBusDebugMode = false;
 bool debugMotionEnabled = false;
 int currentdebugNum = 0;  // Default: erstes Filament
 AMS_filament_motion currentdebugMotion = AMS_filament_motion::on_use;
@@ -73,12 +74,12 @@ bool Bambubus_read() {
     flash_save_struct temp;
 
     if (!Flash_read(&temp, sizeof(temp), Bambubus_flash_addr)) {
-        printf("Bambubus_read: Flash_read fehlgeschlagen!\n");
+        printf("Bambubus_read: Flash_read fehlgeschlagen!");
         return false;
     }
 
     if (temp.check != 0x40614061 || temp.version != Bambubus_version) {
-        printf("Bambubus_read: Daten ungültig oder Version falsch!\n");
+        printf("Bambubus_read: Daten ungültig oder Version falsch!");
         return false;
     }
 
@@ -95,7 +96,7 @@ void Bambubus_set_need_to_save()
 void Bambubus_save()
 {
     if (!Flash_saves(&data_save, sizeof(data_save), Bambubus_flash_addr)) {
-        const char msg[] = "Fehler: Bambubus Flash speichern fehlgeschlagen!\n";
+        const char msg[] = "Fehler: Bambubus Flash speichern fehlgeschlagen!";
         Debug_log_write(msg);
     }
 }
@@ -116,7 +117,7 @@ void on_heartbeat(uint8_t* buf, int length)
     ram_core.last_heartbeat_len = copy_len;
 
     // Debug
-    // printf("Heartbeat: %u, Zeit: %llu, Paket-Länge: %d\n", ram_core.heartbeat, ram_core.last_heartbeat_time, ram_core.last_heartbeat_len);
+    // printf("Heartbeat: %u, Zeit: %llu, Paket-Länge: %d", ram_core.heartbeat, ram_core.last_heartbeat_time, ram_core.last_heartbeat_len);
 }
 
 int get_now_filament_num()
@@ -161,11 +162,12 @@ void set_filament_online(int num, bool if_online)
         }
         else
         {
-#ifdef _Bambubus_DEBUG_mode_
-            data_save.filament[num].statu = AMS_filament_stu::online;
-#else
-            data_save.filament[num].statu = AMS_filament_stu::offline;
-#endif // DEBUG
+            // Filamentrolle online/offline setzen
+            if (bambuBusDebugMode) {
+                data_save.filament[num].statu = AMS_filament_stu::online; // Debug erzwingt online
+            } else {
+                data_save.filament[num].statu = AMS_filament_stu::offline;
+            }
             // Motion setzen
             if (debugMotionEnabled && num == currentdebugNum) {
                 set_filament_motion(num, currentdebugMotion);
@@ -285,7 +287,7 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
             uint8_t crc = _RX_IRQ_crcx.calc();
             if (data != crc)
             {   
-                DEBUG_MY("CRC ERROR!\n");
+                DEBUG_MY("CRC ERROR!");
                 _index = 0;
                 return;
             }
@@ -299,13 +301,13 @@ void inline RX_IRQ(unsigned char _RX_IRQ_data)
             memcpy(buf_X, BambuBus_data_buf, length);
             BambuBus_have_data = length;
             // Hier Debug-Ausgabe einfügen
-            DEBUG_MY("PACKAGE COMPLETE\n");
+            //DEBUG_MY("PACKAGE COMPLETE");
             _index = 0;
         }
 
         if (_index >= 999) // recv error
         {
-            DEBUG_MY("RX_IRQ RESET\n");
+            DEBUG_MY("RX_IRQ RESET");
             _index = 0;
         }
     }

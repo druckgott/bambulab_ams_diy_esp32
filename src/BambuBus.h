@@ -83,6 +83,7 @@ extern "C"
         int      last_heartbeat_len;      // Länge des letzten Pakets
     };
 
+    extern bool bambuBusDebugMode;
     extern bool debugMotionEnabled;
     extern int currentdebugNum;
     extern AMS_filament_motion currentdebugMotion;

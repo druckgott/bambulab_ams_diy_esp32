@@ -12,6 +12,7 @@ extern uint64_t Debug_log_count64();
 extern void Debug_log_time();
 extern void Debug_log_write(const void *data);
 extern void Debug_log_write_num(const void *data, int num);
+extern void Debug_log_write_bin(const void *data, int num);
 
 // Dummy-Makro für Zeit-Logging
 #define DEBUG_time_log() ;
@@ -22,6 +23,7 @@ extern void Debug_log_write_num(const void *data, int num);
 #define DEBUG_num(logs, num) Debug_log_write_num(logs, num)
 #define DEBUG_time() Debug_log_time()
 #define DEBUG_get_time() Debug_log_count64()
+#define DEBUG_bin(data, num) Debug_log_write_bin(data, num)
 #else
 #define DEBUG_init() ;
 #define DEBUG_MY(logs) ;

@@ -46,4 +46,17 @@ void Debug_log_write_num(const void *data, int num)
 
 }
 
+void Debug_log_write_bin(const uint8_t *data, size_t len)
+{
+    for (size_t i = 0; i < len; i++)
+    {
+        char buf[4];
+        sprintf(buf, "%02X ", data[i]); // Hex-Darstellung
+        webSerial.print(buf);           // WebSerial ausgeben
+        Serial.print(buf);              // optional für Hardware-Serial
+    }
+    webSerial.println(); // Zeilenumbruch nach einem Paket
+    Serial.println();
+}
+
 #endif

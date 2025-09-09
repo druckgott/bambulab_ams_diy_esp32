@@ -1,7 +1,6 @@
 #pragma once
 #include <Arduino.h>
 #include "stdlib.h"
-#include "Debug_log.h"
 #include "FlashStorage.h"
 #include "Motion_control.h"
 #include "BambuBus.h"
@@ -10,6 +9,7 @@
 #include "ADC_DMA.h"
 #include "OTA_webserial.h"
 #include "pins.h"
+#include "Debug_log.h"
 
 #define delay_any_us(time)                                                 \
     {                                                                      \
