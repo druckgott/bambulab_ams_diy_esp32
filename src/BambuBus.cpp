@@ -520,8 +520,10 @@ BambuBus_package_type get_packge_type(unsigned char *buf, int length)
         switch (buf[4])
         {
         case 0x03:
+            DEBUG_MY("filament_motion_short");
             return BambuBus_package_type::filament_motion_short;
         case 0x04:
+            DEBUG_MY("filament_motion_long");
             return BambuBus_package_type::filament_motion_long;
         case 0x05:
             return BambuBus_package_type::online_detect;
@@ -530,6 +532,7 @@ BambuBus_package_type get_packge_type(unsigned char *buf, int length)
         case 0x07:
             return BambuBus_package_type::NFC_detect;
         case 0x08:
+            DEBUG_MY("set_filament_info");
             return BambuBus_package_type::set_filament_info;
         case 0x20:
             return BambuBus_package_type::heartbeat;

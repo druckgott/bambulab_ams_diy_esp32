@@ -89,8 +89,6 @@
 #define Debug_log_on
 #define Debug_log_baudrate 115200
 
-//#define _Bambubus_DEBUG_mode_
-
 //OTA Task
 #define OTA_TASK_DELAY_MS 100  // Verzögerung für OTA-Task in Millisekunden
 
