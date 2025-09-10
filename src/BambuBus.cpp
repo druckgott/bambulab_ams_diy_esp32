@@ -606,9 +606,9 @@ void set_motion_res_datas(unsigned char *set_buf, unsigned char read_num)
         pressure = data_save.filament[read_num].pressure;
         
         // Hier die Debug-Ausgabe einfügen
-        char dbg[128];
-        sprintf(dbg, "Filament %u: meters=%.2f, pressure=%u", read_num, meters, pressure);
-        DEBUG_MY(dbg);
+        //char dbg[128];
+        //sprintf(dbg, "Filament %u: meters=%.2f, pressure=%u", read_num, meters, pressure);
+        //DEBUG_MY(dbg);
     }
     set_buf[0] = BambuBus_AMS_num;
     set_buf[1] = 0x00;
@@ -619,6 +619,7 @@ void set_motion_res_datas(unsigned char *set_buf, unsigned char read_num)
     set_buf[24] = get_filament_left_char();
 }
 
+//hier wird definiert wann der Motor angesteuert werden soll und in welche Richtung
 bool set_motion(unsigned char read_num, unsigned char statu_flags, unsigned char fliment_motion_flag)
 {
     static uint64_t time_last = 0;
@@ -644,6 +645,13 @@ bool set_motion(unsigned char read_num, unsigned char statu_flags, unsigned char
                 data_save.filament[read_num].motion_set = AMS_filament_motion::need_send_out;
                 data_save.filament_use_flag = 0x02;
                 data_save.filament[read_num].pressure = 0x4700;
+                // --- DEBUG ---
+                char dbg[128];
+                sprintf(dbg, "Filament %u set: motion_set=need_send_out, filament_use_flag=0x%02X, pressure=0x%04X",
+                        read_num,
+                        data_save.filament_use_flag,
+                        data_save.filament[read_num].pressure);
+                DEBUG_MY(dbg);
             }
             else if ((statu_flags == 0x09)) // 09 A5 / 09 3F
             {
@@ -895,6 +903,16 @@ void send_for_motion_long(unsigned char *buf, int length)
             filament_flag_NFC |= 1 << i;
         }
     }
+
+    //set_motion debug input
+    /*if (read_num != 0 && read_num != 255)
+    {
+        char dbg_fail[128];
+        sprintf(dbg_fail, "set_motion: read_num=%u, statu_flags=0x%02X, fliment_motion_flag=0x%02X (0x00 --> idle)",
+                read_num, statu_flags, fliment_motion_flag);
+        DEBUG_MY(dbg_fail);
+    }*/
+
     if (!set_motion(read_num, statu_flags, fliment_motion_flag))
         return;
 
@@ -909,11 +927,11 @@ void send_for_motion_long(unsigned char *buf, int length)
 
     set_motion_res_datas(Dxx_res + 17, read_num);
 
-    if (read_num <= 3 && read_num != 0){
+    /*if (read_num <= 3 && read_num != 0){
         char dbg2[64];
         sprintf(dbg2, "Filament %u motion data set at Dxx_res+17", read_num);
         DEBUG_MY(dbg2);
-    }
+    }*/
 
     package_send_with_crc(Dxx_res, sizeof(Dxx_res));
 
