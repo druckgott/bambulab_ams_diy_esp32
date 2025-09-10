@@ -467,16 +467,16 @@ _MOTOR_CONTROL MOTOR_CONTROL[4] = {_MOTOR_CONTROL(0), _MOTOR_CONTROL(1), _MOTOR_
 void Motion_control_PWM_init()
 {
     // PWM-Kanäle konfigurieren
-    ledcSetup(PWM_CH0, PWM_FREQ, PWM_RES);
-    ledcSetup(PWM_CH1, PWM_FREQ, PWM_RES);
-    ledcSetup(PWM_CH2, PWM_FREQ, PWM_RES);
-    ledcSetup(PWM_CH3, PWM_FREQ, PWM_RES);
+    ledcSetup(MOTOR_PWM_CH0, PWM_FREQ, PWM_RES);
+    ledcSetup(MOTOR_PWM_CH1, PWM_FREQ, PWM_RES);
+    ledcSetup(MOTOR_PWM_CH2, PWM_FREQ, PWM_RES);
+    ledcSetup(MOTOR_PWM_CH3, PWM_FREQ, PWM_RES);
 
     // PWM-Kanäle auf Pins legen
-    ledcAttachPin(PWM0_PIN_LED, PWM_CH0);
-    ledcAttachPin(PWM1_PIN_LED, PWM_CH1);
-    ledcAttachPin(PWM2_PIN_LED, PWM_CH2);
-    ledcAttachPin(PWM3_PIN_LED, PWM_CH3);
+    ledcAttachPin(PWM0_PIN_LED, MOTOR_PWM_CH0);
+    ledcAttachPin(PWM1_PIN_LED, MOTOR_PWM_CH1);
+    ledcAttachPin(PWM2_PIN_LED, MOTOR_PWM_CH2);
+    ledcAttachPin(PWM3_PIN_LED, MOTOR_PWM_CH3);
 }
 
 void Motion_control_set_PWM(uint8_t CHx, int PWM)
@@ -485,10 +485,10 @@ void Motion_control_set_PWM(uint8_t CHx, int PWM)
 
     switch (CHx)
     {
-    case 0: ledcWrite(PWM_CH0, value); break;
-    case 1: ledcWrite(PWM_CH1, value); break;
-    case 2: ledcWrite(PWM_CH2, value); break;
-    case 3: ledcWrite(PWM_CH3, value); break;
+    case 0: ledcWrite(MOTOR_PWM_CH0, value); break;
+    case 1: ledcWrite(MOTOR_PWM_CH1, value); break;
+    case 2: ledcWrite(MOTOR_PWM_CH2, value); break;
+    case 3: ledcWrite(MOTOR_PWM_CH3, value); break;
     }
 }
 

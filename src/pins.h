@@ -51,10 +51,10 @@
 
 // PWM-Kanäle (ESP32 hat max. 16 Kanäle, 0-15)
 //vermutlich 8 Motoren? DC Motoren
-#define PWM_CH0 0
-#define PWM_CH1 1
-#define PWM_CH2 2
-#define PWM_CH3 3
+#define MOTOR_PWM_CH0 0
+#define MOTOR_PWM_CH1 1
+#define MOTOR_PWM_CH2 2
+#define MOTOR_PWM_CH3 3
 
 // PWM-Frequenz und Auflösung
 #define PWM_FREQ 20000           // 20 kHz, passend für Motorsteuerung

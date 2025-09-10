@@ -520,10 +520,8 @@ BambuBus_package_type get_packge_type(unsigned char *buf, int length)
         switch (buf[4])
         {
         case 0x03:
-            DEBUG_MY("filament_motion_short");
             return BambuBus_package_type::filament_motion_short;
         case 0x04:
-            DEBUG_MY("filament_motion_long");
             return BambuBus_package_type::filament_motion_long;
         case 0x05:
             return BambuBus_package_type::online_detect;
@@ -532,7 +530,6 @@ BambuBus_package_type get_packge_type(unsigned char *buf, int length)
         case 0x07:
             return BambuBus_package_type::NFC_detect;
         case 0x08:
-            DEBUG_MY("set_filament_info");
             return BambuBus_package_type::set_filament_info;
         case 0x20:
             return BambuBus_package_type::heartbeat;
@@ -590,18 +587,28 @@ uint8_t get_filament_left_char()
     return data;
 }
 
+float counter_fake_meter = 0.0f;  // zählt simulierte Meter
+
 void set_motion_res_datas(unsigned char *set_buf, unsigned char read_num)
 {
     float meters = 0;
     uint16_t pressure = 0xFFFF;
     if ((read_num != 0xFF) && (read_num < 4))
     {
-        meters = data_save.filament[read_num].meters;
+        //fake Vorschubtest
+        //counter_fake_meter += 0.002f;
+        meters = data_save.filament[read_num].meters + counter_fake_meter;
+
         if (BambuBus_address == BambuBus_AMS_lite)
         {
             meters = -meters;
         }
         pressure = data_save.filament[read_num].pressure;
+        
+        // Hier die Debug-Ausgabe einfügen
+        char dbg[128];
+        sprintf(dbg, "Filament %u: meters=%.2f, pressure=%u", read_num, meters, pressure);
+        DEBUG_MY(dbg);
     }
     set_buf[0] = BambuBus_AMS_num;
     set_buf[1] = 0x00;
@@ -611,6 +618,7 @@ void set_motion_res_datas(unsigned char *set_buf, unsigned char read_num)
     memcpy(set_buf + 8, &pressure, sizeof(uint16_t));
     set_buf[24] = get_filament_left_char();
 }
+
 bool set_motion(unsigned char read_num, unsigned char statu_flags, unsigned char fliment_motion_flag)
 {
     static uint64_t time_last = 0;
@@ -855,14 +863,92 @@ uint8_t filament_flag_detected = 0;
 
 void send_for_motion_long(unsigned char *buf, int length)
 {
+    unsigned char read_num = buf[9];
+
+    // Nur read_num ausgeben, wenn es interessant ist
+    /*if (read_num != 0 && read_num != 255)
+    {
+        char dbg[32];
+        sprintf(dbg, "read_num = %u", read_num);
+        DEBUG_MY(dbg);
+    }*/
+
+    // Rest des Codes unverändert
+    unsigned char filament_flag_on = 0x00;
+    unsigned char filament_flag_NFC = 0x00;
+    unsigned char AMS_num = buf[5];
+    unsigned char statu_flags = buf[6];
+    unsigned char fliment_motion_flag = buf[7];
+
+    if (AMS_num != BambuBus_AMS_num)
+        return;
+
+    for (auto i = 0; i < 4; i++)
+    {
+        if (data_save.filament[i].statu == AMS_filament_stu::online)
+        {
+            filament_flag_on |= 1 << i;
+        }
+        else if (data_save.filament[i].statu == AMS_filament_stu::NFC_waiting)
+        {
+            filament_flag_on |= 1 << i;
+            filament_flag_NFC |= 1 << i;
+        }
+    }
+    if (!set_motion(read_num, statu_flags, fliment_motion_flag))
+        return;
+
+    Dxx_res[1] = 0xC0 | (package_num << 3);
+    Dxx_res[5] = BambuBus_AMS_num;
+    Dxx_res[8] = AMS_humidity_wet;
+    Dxx_res[9] = filament_flag_on;
+    Dxx_res[10] = filament_flag_on - filament_flag_NFC;
+    Dxx_res[11] = filament_flag_on - filament_flag_NFC;
+    Dxx_res[12] = read_num;
+    Dxx_res[13] = filament_flag_NFC;
+
+    set_motion_res_datas(Dxx_res + 17, read_num);
+
+    if (read_num <= 3 && read_num != 0){
+        char dbg2[64];
+        sprintf(dbg2, "Filament %u motion data set at Dxx_res+17", read_num);
+        DEBUG_MY(dbg2);
+    }
+
+    package_send_with_crc(Dxx_res, sizeof(Dxx_res));
+
+    if (package_num < 7)
+        package_num++;
+    else
+        package_num = 0;
+}
+
+/*void send_for_motion_long(unsigned char *buf, int length)
+{
     unsigned char filament_flag_on = 0x00;
     unsigned char filament_flag_NFC = 0x00;
     unsigned char AMS_num = buf[5];
     unsigned char statu_flags = buf[6];
     unsigned char fliment_motion_flag = buf[7];
     unsigned char read_num = buf[9];
+
     if (AMS_num != BambuBus_AMS_num)
         return;
+
+    char dbg[128];
+    sprintf(dbg, "MotionLong: AMS=%u, statu_flags=0x%02X, motion_flag=0x%02X, read_num=%u",
+            AMS_num, statu_flags, fliment_motion_flag, read_num);
+    DEBUG_MY(dbg);
+
+    // Payload als Hexdump ausgeben
+    char dbg_payload[256];
+    int dbg_idx = 0;
+    dbg_idx += sprintf(dbg_payload, "Payload (%dB): ", length);
+    for (int i = 0; i < length && dbg_idx < (int)sizeof(dbg_payload) - 4; i++) {
+        dbg_idx += sprintf(dbg_payload + dbg_idx, "%02X ", buf[i]);
+    }
+    DEBUG_MY(dbg_payload);
+
     for (auto i = 0; i < 4; i++)
     {
         // filament[i].meters;
@@ -878,20 +964,10 @@ void send_for_motion_long(unsigned char *buf, int length)
     }
     if (!set_motion(read_num, statu_flags, fliment_motion_flag))
         return;
-    /*if (need_res_for_06)
-    {
-        Dxx_res2[1] = 0xC0 | (package_num << 3);
-        Dxx_res2[9] = filament_flag_on;
-        Dxx_res2[10] = filament_flag_on - filament_flag_NFC;
-        Dxx_res2[11] = filament_flag_on - filament_flag_NFC;
-        Dxx_res[19] = motion_flag;
-        Dxx_res[20] = Dxx_res2[12] = res_for_06_num;
-        Dxx_res2[13] = filament_flag_NFC;
-        Dxx_res2[41] = get_filament_left_char();
-        package_send_with_crc(Dxx_res2, sizeof(Dxx_res2));
-        need_res_for_06 = false;
-    }
-    else*/
+
+    // Debug-Ausgabe der Flags
+    sprintf(dbg, "Flags: on=0x%02X, NFC=0x%02X", filament_flag_on, filament_flag_NFC);
+    DEBUG_MY(dbg);
 
     {
         Dxx_res[1] = 0xC0 | (package_num << 3);
@@ -905,26 +981,14 @@ void send_for_motion_long(unsigned char *buf, int length)
 
         set_motion_res_datas(Dxx_res + 17, read_num);
     }
-    /*if (last_detect != 0)//本用于模拟NFC探测过程
-    {
-        if (last_detect > 10)
-        {
-            Dxx_res[19] = 0x01;
-        }
-        else
-        {
-            Dxx_res[12] = filament_flag_detected;
-            Dxx_res[19] = 0x01;
-            Dxx_res[20] = filament_flag_detected;
-        }
-        last_detect--;
-    }*/
     package_send_with_crc(Dxx_res, sizeof(Dxx_res));
     if (package_num < 7)
         package_num++;
     else
         package_num = 0;
-}
+}*/
+
+
 unsigned char REQx6_res[] = {0x3D, 0xE0, 0x3C, 0x1A, 0x06,
                              0x00, 0x00, 0x00, 0x00,
                              0x04, 0x04, 0x04, 0xFF, // flags
@@ -1266,6 +1330,13 @@ BambuBus_package_type BambuBus_run()
         BambuBus_have_data = 0;
         need_debug = false;
         delay(1);
+        // Nur read_num ausgeben, wenn Paket groß genug ist
+        /*if (data_length > 9) {
+            char dbg[64];
+            sprintf(dbg, "read_num = %u", buf_X[9]);
+            DEBUG_MY(dbg);
+        }*/
+
         stu = get_packge_type(buf_X, data_length); // have_data
         switch (stu)
         {
@@ -1274,10 +1345,12 @@ BambuBus_package_type BambuBus_run()
             on_heartbeat(buf_X, data_length);
             break;
         case BambuBus_package_type::filament_motion_short:
+            //DEBUG_MY("filament_motion_short");
             send_for_motion_short(buf_X, data_length);
             break;
         case BambuBus_package_type::filament_motion_long:
             // need_debug=true;
+            //DEBUG_MY("filament_motion_long");
             send_for_motion_long(buf_X, data_length);
             time_motion = timex + 1000;
             break;
