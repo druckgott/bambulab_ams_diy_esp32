@@ -11,8 +11,7 @@ It establishes RS485 serial communication between the AMS and the ESP32.
 This code was used as a base and ported to the ESP32:  
 https://github.com/krrr/BMCU370
 
-There is also **OTA and WebSerial** integrated for easier analysis:  
-
+There is also **OTA and WebSerial** integrated for easier analysis, but first flash you have to do by wire. 
 Additional information:  
 
 - https://wiki.bambulab.com/en/x1/troubleshooting/AMS_is_not_detected_by_the_printer  
