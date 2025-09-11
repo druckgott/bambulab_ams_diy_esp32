@@ -11,8 +11,7 @@ It establishes RS485 serial communication between the AMS and the ESP32.
 This code was used as a base and ported to the ESP32:  
 https://github.com/krrr/BMCU370
 
-There is also a branch with **OTA and WebSerial** for easier analysis:  
-https://github.com/druckgott/bambulab_ams_diy_esp32_test/tree/ota_webserial
+There is also **OTA and WebSerial** integrated for easier analysis:  
 
 Additional information:  
 
