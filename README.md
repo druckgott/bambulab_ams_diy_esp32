@@ -92,5 +92,7 @@ This ensures that settings remain available even after a restart or OTA update.
 
 ![Alternativtext](images/webserial.jpg)
 
+![Alternativtext](images/wiring.jpg)
+
 
 
