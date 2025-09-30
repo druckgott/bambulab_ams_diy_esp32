@@ -2,16 +2,13 @@
 #include <driver/ledc.h>  // Für ESP32 PWM-Funktionen
 
 // Kanalzuordnung: 8 PWM-Kanäle
-static const ledc_channel_t pwm_channels[8] = {
-    LEDC_CHANNEL_0, LEDC_CHANNEL_1, LEDC_CHANNEL_2, LEDC_CHANNEL_3,
-    LEDC_CHANNEL_4, LEDC_CHANNEL_5, LEDC_CHANNEL_6, LEDC_CHANNEL_7
+static const ledc_channel_t pwm_channels[4] = {
+    LEDC_CHANNEL_0, LEDC_CHANNEL_1, LEDC_CHANNEL_2, LEDC_CHANNEL_3
 };
 
-static const uint8_t pwm_pins[8] = {
-    PWM_CH0_PIN, PWM_CH1_PIN, PWM_CH2_PIN, PWM_CH3_PIN,
-    PWM_CH4_PIN, PWM_CH5_PIN, PWM_CH6_PIN, PWM_CH7_PIN
+static const uint8_t pwm_pins[4] = {
+    PWM_CH0_PIN, PWM_CH1_PIN, PWM_CH2_PIN, PWM_CH3_PIN
 };
-
 
 AS5600_soft_IIC_many MC_AS5600;
 uint8_t AS5600_SCL[] = { AS5600_0_SCL, AS5600_1_SCL, AS5600_2_SCL, AS5600_3_SCL };
@@ -19,6 +16,8 @@ uint8_t AS5600_SDA[] = { AS5600_0_SDA, AS5600_1_SDA, AS5600_2_SDA, AS5600_3_SDA 
 #define AS5600_PI 3.1415926535897932384626433832795
 #define speed_filter_k 100
 float speed_as5600[4] = {0, 0, 0, 0};
+
+int16_t Motor_PWM_value[4] = {0, 0, 0, 0};
 
 void MC_PULL_ONLINE_init()
 {
@@ -51,7 +50,8 @@ float_t last_total_distance[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // Initialisierte Ent
 void MC_PULL_ONLINE_read()
 {
     //testdata:
-    float test_data[8] = { 1.6, 1.7, 1.6, 1.7, 1.6, 1.7, 1.6, 1.7 }; // optimale Werte
+    //float test_data[8] = { 1.6, 1.7, 1.6, 1.7, 1.6, 1.7, 1.6, 1.7 }; // optimale Werte
+    float test_data[8] = { 1.6, 1.8, 1.6, 1.8, 1.6, 1.8, 1.6, 1.8 }; // testwerte damit Motor laufen kann
     float *data = test_data; // Zeiger für bestehende Logik
     //float *data = ADC_DMA_get_value();
 
@@ -77,24 +77,24 @@ void MC_PULL_ONLINE_read()
             DEBUG_MY("   ");
         }
         */
-        if (MC_PULL_stu_raw[i] > PULL_voltage_up) // 大于1.85V,表示压力过高
+        if (MC_PULL_stu_raw[i] > PULL_voltage_up) // Größer als 1,85 V → zu hoher Druck
         {
             MC_PULL_stu[i] = 1;
         }
-        else if (MC_PULL_stu_raw[i] < PULL_voltage_down) // 小于1.45V，表示压力过低
+        else if (MC_PULL_stu_raw[i] < PULL_voltage_down) // Kleiner als 1,45 V → zu niedriger Druck
         {
             MC_PULL_stu[i] = -1;
         }
-        else // 1.4~1.7之间，在正常误差范围内，无需动作
+        else // Zwischen 1,4 und 1,7, innerhalb des normalen Fehlers, keine Aktion erforderlich
         {
             MC_PULL_stu[i] = 0;
         }
-        /*在线状态*/
+        /* Online-Status */
 
-        // 耗材在线判断
+        // Überprüfung, ob Verbrauchsmaterial online/aktiv ist
         if (is_two == false)
         {
-            // 大于1.65V，为耗材在线，高电平.
+            // Größer als 1,65 V: Verbrauchsmaterial ist online, hoher Pegel
             if (MC_ONLINE_key_stu_raw[i] > 1.65)
             {
                 MC_ONLINE_key_stu[i] = 1;
@@ -107,21 +107,21 @@ void MC_PULL_ONLINE_read()
         else
         {
             // DEBUG_MY(MC_ONLINE_key_stu_raw);
-            // 双微动
+            // Doppel-Mikroschalter
             if (MC_ONLINE_key_stu_raw[i] < 0.6f)
-            { // 小于则离线.
+            { // Wenn kleiner, dann offline
                 MC_ONLINE_key_stu[i] = 0;
             }
             else if ((MC_ONLINE_key_stu_raw[i] < 1.7f) & (MC_ONLINE_key_stu_raw[i] > 1.4f))
-            { // 仅触发外侧微动，需辅助进料
+            { // Nur der äußere Mikroschalter wird ausgelöst, zusätzliche Zuführung erforderlich
                 MC_ONLINE_key_stu[i] = 2;
             }
             else if (MC_ONLINE_key_stu_raw[i] > 1.7f)
-            { // 双微动同时触发, 在线状态
+            { // Beide Mikroschalter gleichzeitig ausgelöst, Online-Status
                 MC_ONLINE_key_stu[i] = 1;
             }
             else if (MC_ONLINE_key_stu_raw[i] < 1.4f)
-            { // 仅触发内侧微动 , 需确认是缺料还是抖动.
+            { // Nur der innere Mikroschalter wird ausgelöst, es muss überprüft werden, ob Material fehlt oder nur ein Wackeln vorliegt
                 MC_ONLINE_key_stu[i] = 3;
             }
         }
@@ -332,6 +332,7 @@ public:
         if (is_backing_out){
             last_total_distance[CHx] += fabs(speed_as5600[CHx] * time_E);
         }
+        float pid_val = 0;  // jetzt schon sichtbar im gesamten run()
         float speed_set = 0;
         float now_speed = speed_as5600[CHx];
         float x=0;
@@ -435,7 +436,8 @@ public:
                 {
                     speed_set = -50;
                 }
-                x = dir * PID_speed.caculate(now_speed - speed_set, time_E);
+                pid_val = PID_speed.caculate(now_speed - speed_set, time_E);
+                x = dir * pid_val;
             }
         }
         else // 运行过程中耗材用完，需要停止电机控制
@@ -459,12 +461,31 @@ public:
             x = -PWM_lim;
         }
 
+        // ===== DEBUG vor PWM setzen =====
+        char dbg[256];
+        sprintf(dbg,
+            "CH=%u, motion=%d, dir=%d, now_speed=%.2f, speed_set=%.2f, PID_speed=%.2f, x=%.2f, pwm_zero=%.2f, MC_PULL_stu=%d, MC_ONLINE_key_stu=%d, last_total_distance=%.2f",
+            CHx,
+            (int)motion,
+            (int)dir,
+            now_speed,
+            speed_set,
+            pid_val,
+            x,
+            pwm_zero,
+            MC_PULL_stu[CHx],
+            MC_ONLINE_key_stu[CHx],
+            last_total_distance[CHx]
+        );
+        DEBUG_MY(dbg);
+        // ===== DEBUG Ende =====
+
         Motion_control_set_PWM(CHx, x);
     }
 };
 _MOTOR_CONTROL MOTOR_CONTROL[4] = {_MOTOR_CONTROL(0), _MOTOR_CONTROL(1), _MOTOR_CONTROL(2), _MOTOR_CONTROL(3)};
 
-void Motion_control_PWM_init()
+/*void Motion_control_PWM_init()
 {
     // PWM-Kanäle konfigurieren
     ledcSetup(MOTOR_PWM_CH0, PWM_FREQ, PWM_RES);
@@ -473,14 +494,17 @@ void Motion_control_PWM_init()
     ledcSetup(MOTOR_PWM_CH3, PWM_FREQ, PWM_RES);
 
     // PWM-Kanäle auf Pins legen
-    ledcAttachPin(PWM0_PIN_LED, MOTOR_PWM_CH0);
-    ledcAttachPin(PWM1_PIN_LED, MOTOR_PWM_CH1);
-    ledcAttachPin(PWM2_PIN_LED, MOTOR_PWM_CH2);
-    ledcAttachPin(PWM3_PIN_LED, MOTOR_PWM_CH3);
-}
+    ledcAttachPin(PWM_CH0_PIN, MOTOR_PWM_CH0);
+    ledcAttachPin(PWM_CH1_PIN, MOTOR_PWM_CH1);
+    ledcAttachPin(PWM_CH2_PIN, MOTOR_PWM_CH2);
+    ledcAttachPin(PWM_CH3_PIN, MOTOR_PWM_CH3);
+}*/
 
 void Motion_control_set_PWM(uint8_t CHx, int PWM)
 {
+
+    Motor_PWM_value[CHx] = PWM;
+
     uint16_t value = constrain(abs(PWM), 0, 1023); // ESP32 10-Bit PWM
 
     switch (CHx)
@@ -593,7 +617,7 @@ void motor_motion_switch() // 通道状态切换函数，只控制当前在使�
             filament_now_position[i] = filament_idle;
             MOTOR_CONTROL[i].set_motion(filament_motion_enum::filament_motion_pressure_ctrl_idle, 1000);
         }
-        else if (MC_ONLINE_key_stu[num] == 1 || MC_ONLINE_key_stu[num] == 3) // 通道有耗材丝
+        else if (MC_ONLINE_key_stu[num] == 1 || MC_ONLINE_key_stu[num] == 3) // Kanal enthält Verbrauchsmaterial (Draht/Faden)
         {
             switch (get_filament_motion(num)) // 判断模拟器状态
             {
@@ -808,7 +832,7 @@ void MC_PWM_init()
     ledc_timer_config(&ledc_timer);
 
     // Alle PWM-Kanäle konfigurieren
-    for (int ch = 0; ch < 8; ch++) {
+    for (int ch = 0; ch < 4; ch++) {
         ledc_channel_config_t ledc_channel = {};
         ledc_channel.channel    = pwm_channels[ch];
         ledc_channel.duty       = 0;
@@ -991,10 +1015,10 @@ void MOTOR_init()
     // 自动方向
     MOTOR_get_dir();
 
-    // 固定电机方向用
+    // Wird verwendet, um die Richtung der Motoren festzulegen
     if (first_boot == 1)
-    { // 首次启动
-        // set_motor_directions(1 , 1 , 1 , 1 ); // 1为正转 -1为反转
+    { // Erstes Starten
+        set_motor_directions(1 , 1 , 1 , 1 ); // 1 für Vorwärtsdrehung, -1 für Rückwärtsdrehung
         first_boot = 0;
     }
     for (int index = 0; index < 4; index++)

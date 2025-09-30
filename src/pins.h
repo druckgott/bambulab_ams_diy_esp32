@@ -51,6 +51,7 @@
 
 // PWM-Kanäle (ESP32 hat max. 16 Kanäle, 0-15)
 //vermutlich 8 Motoren? DC Motoren
+//#define MOTOR_PWM_CH0 0
 #define MOTOR_PWM_CH0 0
 #define MOTOR_PWM_CH1 1
 #define MOTOR_PWM_CH2 2
@@ -61,14 +62,14 @@
 #define PWM_RES  10              // 10 Bit Auflösung (0-1023)
 
 // Pins definieren fur PWM Channel
-#define PWM_CH0_PIN 15
+#define PWM_CH0_PIN 32
 #define PWM_CH1_PIN 2
 #define PWM_CH2_PIN 4
 #define PWM_CH3_PIN 15  
-#define PWM_CH4_PIN 12   // statt 18 (GPIO2 vorsichtig, Boot-Pin)
+/*#define PWM_CH4_PIN 12   // statt 18 (GPIO2 vorsichtig, Boot-Pin)
 #define PWM_CH5_PIN 4   
-#define PWM_CH6_PIN 32  
-#define PWM_CH7_PIN 35 
+#define PWM_CH6_PIN 15  
+#define PWM_CH7_PIN 35*/
 
 // ADC-Pins für ESP32 (ADC1), gefilterten Spannungen
 //Initialisiert 8 ADC-Kanäle des ESP32 mit 12-Bit Auflösung und ~3.3 V Messbereich.
@@ -81,7 +82,7 @@
 #define ADC1_CH1_PIN 37
 #define ADC1_CH2_PIN 38
 #define ADC1_CH3_PIN 39
-#define ADC1_CH4_PIN 32
+#define ADC1_CH4_PIN 40
 #define ADC1_CH5_PIN 33
 #define ADC1_CH6_PIN 34
 #define ADC1_CH7_PIN 35

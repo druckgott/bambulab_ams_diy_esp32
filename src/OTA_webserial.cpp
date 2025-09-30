@@ -92,6 +92,14 @@ void init_ota_webserial() {
           if (i < 3) json += ",";
       }
       json += "],";
+
+      json += "\"Motor_PWM\":[";
+      for (int i = 0; i < 4; i++) {
+        json += String(Motor_PWM_value[i]);
+        if (i < 3) json += ",";
+      }
+      json += "],";
+
       /*json += "]";
       json += "}";*/
 
@@ -164,11 +172,14 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
     page += "<tr><td>Check</td><td id='m_check'>0x" + String(Motion_control_data_save.check, HEX) + "</td></tr>";
     page += "</table>";
 
-    // Motion Control Dir
-    page += "<h3>Motion Control Dir</h3>";
-    page += "<table id='motionDirTable'><tr><th>Index</th><th>Value</th></tr>";
+    // Motion Control Dir und PWM
+    page += "<table id='motionDirTable'><tr><th>Index</th><th>Direction</th><th>PWM</th></tr>";
     for(int i=0;i<4;i++){
-        page += "<tr><td>" + String(i) + "</td><td id='md_" + String(i) + "'>" + String(Motion_control_data_save.Motion_control_dir[i]) + "</td></tr>";
+        page += "<tr>";
+        page += "<td>" + String(i) + "</td>";
+        page += "<td id='md_" + String(i) + "'>" + String(Motion_control_data_save.Motion_control_dir[i]) + "</td>";
+        page += "<td id='md_pwm_" + String(i) + "'>" + String(Motor_PWM_value[i]) + "</td>";
+        page += "</tr>";
     }
     page += "</table>";
 
@@ -201,7 +212,11 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
     page += "  }";
 
     page += "  document.getElementById('m_check').innerText = data.Motion_check;";
-    page += "  for(let i=0;i<4;i++){ document.getElementById('md_'+i).innerText = data.Motion_dir[i]; }";
+    //page += "  for(let i=0;i<4;i++){ document.getElementById('md_'+i).innerText = data.Motion_dir[i]; }";
+    page += "  for(let i=0;i<4;i++){";
+    page += "  document.getElementById('md_'+i).innerText = data.Motion_dir[i]; ";
+    page += "  document.getElementById('md_pwm_'+i).innerText = data.Motor_PWM[i];";
+    page += "  }";
 
     page += "}";
     page += "setInterval(updateStorage, 500);";

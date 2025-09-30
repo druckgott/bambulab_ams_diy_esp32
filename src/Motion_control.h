@@ -9,6 +9,7 @@ struct alignas(4) Motion_control_save_struct
 };
 
 extern Motion_control_save_struct Motion_control_data_save;
+extern int16_t Motor_PWM_value[4];
 
 extern void Motion_control_init();
 extern void Motion_control_set_PWM(uint8_t CHx, int PWM);
