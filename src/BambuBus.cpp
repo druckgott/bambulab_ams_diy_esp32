@@ -172,7 +172,7 @@ void set_filament_online(int num, bool if_online)
             if (debugMotionEnabled && num == currentdebugNum) {
                 set_filament_motion(num, currentdebugMotion);
             } else {
-                set_filament_motion(num, AMS_filament_motion::idle);
+                //set_filament_motion(num, AMS_filament_motion::idle);
             }
         }
     }
