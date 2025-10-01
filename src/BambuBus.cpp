@@ -19,11 +19,7 @@ CRC8 crc_8;
 uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
-
 bool bambuBusDebugMode = false;
-bool debugMotionEnabled = false;
-int currentdebugNum = 0;  // Default: erstes Filament
-AMS_filament_motion currentdebugMotion = AMS_filament_motion::on_use;
 
 uint8_t buf_X[1000];
 CRC8 _RX_IRQ_crcx(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
@@ -167,12 +163,6 @@ void set_filament_online(int num, bool if_online)
                 data_save.filament[num].statu = AMS_filament_stu::online; // Debug erzwingt online
             } else {
                 data_save.filament[num].statu = AMS_filament_stu::offline;
-            }
-            // Motion setzen
-            if (debugMotionEnabled && num == currentdebugNum) {
-                set_filament_motion(num, currentdebugMotion);
-            } else {
-                //set_filament_motion(num, AMS_filament_motion::idle);
             }
         }
     }

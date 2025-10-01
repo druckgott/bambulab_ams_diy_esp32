@@ -1,4 +1,11 @@
- 
+# ⚠️🔴 DISCLAIMER — USE AT YOUR OWN RISK 🔴⚠️
+
+![red](https://placehold.co/15x15/f03c15/f03c15.png) **Important:** This project involves working with electronic hardware and wiring. By using, building, flashing, or following the instructions and code in this repository you accept **full responsibility** for your actions.
+
+The author provides these files **as-is**, without any warranties — express or implied — and **does not** assume liability for any damages, including electrical damage, fire, property loss, or personal injury.
+
+![red](https://placehold.co/15x15/f03c15/f03c15.png) **Always double-check wiring, voltages, and component ratings before powering anything.** If you are not experienced with electronics, consult a qualified technician. Proceed only if you understand and accept the risks.
+
 # 📡 ESP32 ↔ MAX485 ↔ Bambulab AMS
 
 This project demonstrates how to connect an **ESP32 DevKit (Wemos, 32 pins)** together with a **MAX485 module** to the **Bambulab AMS (Auxiliary Material System)**.  
@@ -32,7 +39,7 @@ Additional information:
 
 ---
 
-## 🔌 MAX485 ↔ AMS 6-Pin Cable
+## 🔌 MAX485 ↔ AMS 6-Pin Cable 
 
 According to [Bambulab Wiki – AMS Connector Pinout](https://wiki.bambulab.com/en/x1/troubleshooting/AMS_is_not_detected_by_the_printer):
 
@@ -44,6 +51,7 @@ According to [Bambulab Wiki – AMS Connector Pinout](https://wiki.bambulab.com/
 | Pin 4             | 24 V   | ❌ **Do not connect** |
 | Pin 5             | NC     | ❌ Not used              |
 | Pin 6             | NC     | ❌ Not used              |
+
 
 ---
 
@@ -73,12 +81,18 @@ According to [Bambulab Wiki – AMS Connector Pinout](https://wiki.bambulab.com/
                                    VCC ───────────────► VIN (5V)
 
 ```
+## 🖼️ Version 2 (FAKE AMS inkl. Motor)
+
+![Alternativtext](images/wiring_motor.jpg)
+
+## 🖼️ Version 1 (minimal FAKE AMS)
+
+![Alternativtext](images/wiring.jpg)
 
 # 📦 Flash Storage on ESP32
 
 This project uses a dedicated **Flash partition (`storage`)** to persist data structures.  
 This ensures that settings remain available even after a restart or OTA update.
-
 
 ## 🖼️ Pictures
 
@@ -89,8 +103,6 @@ This ensures that settings remain available even after a restart or OTA update.
 ![Alternativtext](images/webinterface.jpg)
 
 ![Alternativtext](images/webserial.jpg)
-
-![Alternativtext](images/wiring.jpg)
 
 
 

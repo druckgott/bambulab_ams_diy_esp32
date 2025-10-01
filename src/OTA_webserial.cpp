@@ -248,26 +248,6 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
       if (bambuBusDebugMode) page += " checked";
       page += "> Bambubus Debug Mode (immer online)</label>";
 
-      // Checkbox Debug
-      page += "<label><input type='checkbox' name='debug' value='1'";
-      if (debugMotionEnabled) page += " checked";
-      page += "> Debug aktivieren</label>";
-
-      // Filament Nummer
-      page += "<label>Filament Nummer (0-3):</label>";
-      page += "<input type='number' name='num' min='0' max='3' value='" + String(currentdebugNum) + "'>";
-
-      // Motion Auswahl
-      page += "<label>Motion Modus:</label>";
-      page += "<select name='mode'>";
-      String modes[] = {"before_pull_back","need_pull_back","need_send_out","on_use","idle"};
-      int enumVals[] = {0,1,2,3,4};
-      for (int i=0;i<5;i++) {
-          page += "<option value='" + modes[i] + "'";
-          if ((int)currentdebugMotion == enumVals[i]) page += " selected";
-          page += ">" + modes[i] + "</option>";
-      }
-      page += "</select>";
 
       page += "<br><button type='submit'>✅ Anwenden</button>";
       page += "</form>";
@@ -286,26 +266,7 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
       } else {
           bambuBusDebugMode = false;
       }
-      if (request->hasArg("debug")) {
-          debugMotionEnabled = (request->arg("debug") == "1");
-      } else {
-          debugMotionEnabled = false;
-      }
-      if (request->hasArg("num")) {
-          int n = request->arg("num").toInt();
-          if (n >= 0 && n < 4) currentdebugNum = n;
-      }
-      if (request->hasArg("mode")) {
-          String m = request->arg("mode");
-          if (m == "before_pull_back") currentdebugMotion = AMS_filament_motion::before_pull_back;
-          else if (m == "need_pull_back") currentdebugMotion = AMS_filament_motion::need_pull_back;
-          else if (m == "need_send_out") currentdebugMotion = AMS_filament_motion::need_send_out;
-          else if (m == "on_use") currentdebugMotion = AMS_filament_motion::on_use;
-          else if (m == "idle") currentdebugMotion = AMS_filament_motion::idle;
-      }
-      String res = "Debug Motion gesetzt: debug=" + String(debugMotionEnabled) +
-                  ", num=" + String(currentdebugNum) +
-                  ", mode=" + String((int)currentdebugMotion);
+      String res = "Bus Debug Mode gesetzt: debug=" + String(bambuBusDebugMode);
       request->send(200, "text/plain", res);
   });
 
