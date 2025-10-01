@@ -254,15 +254,15 @@ void loop()
         }
         else if (stu == BambuBus_package_type::heartbeat)
         {
-            DEBUG_MY("BambuBus_online"); // Online
+            //DEBUG_MY("BambuBus_online"); // Online
         }
         else if (device_type == BambuBus_AMS_lite)
         {
-            DEBUG_MY("Run_To_AMS_lite"); // Online AMS lite
+            //DEBUG_MY("Run_To_AMS_lite"); // Online AMS lite
         }
         else if (device_type == BambuBus_AMS)
         {
-            DEBUG_MY("Run_To_AMS"); // Online AMS
+            //DEBUG_MY("Run_To_AMS"); // Online AMS
         }
         else
         {
