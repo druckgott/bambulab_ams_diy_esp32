@@ -100,6 +100,17 @@ void init_ota_webserial() {
       }
       json += "],";
 
+      json += "\"Motion_sensors\":["; 
+      for (int i = 0; i < 4; i++) {
+          json += "{";
+          json += "\"online\":" + String(Motion_sensors[i].online ? "true" : "false") + ",";
+          json += "\"raw_angle\":" + String(Motion_sensors[i].raw_angle) + ",";
+          json += "\"magnet_stu\":" + String(Motion_sensors[i].magnet_stu);
+          json += "}";
+          if (i < 3) json += ",";
+      }
+      json += "],";
+
       /*json += "]";
       json += "}";*/
 
@@ -173,12 +184,15 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
     page += "</table>";
 
     // Motion Control Dir und PWM
-    page += "<table id='motionDirTable'><tr><th>Index</th><th>Direction</th><th>PWM</th></tr>";
+    page += "<table id='motionDirTable'><tr><th>Index</th><th>Direction</th><th>PWM</th><th>MC_AS5600 Online</th><th>MC_AS5600 Raw Angle</th><th>MC_AS5600 Magnet Status</th></tr>";
     for(int i=0;i<4;i++){
         page += "<tr>";
         page += "<td>" + String(i) + "</td>";
         page += "<td id='md_" + String(i) + "'>" + String(Motion_control_data_save.Motion_control_dir[i]) + "</td>";
         page += "<td id='md_pwm_" + String(i) + "'>" + String(Motor_PWM_value[i]) + "</td>";
+        page += "<td id='ms_online_" + String(i) + "'>" + String(Motion_sensors[i].online ? "online" : "offline") + "</td>";
+        page += "<td id='ms_raw_" + String(i) + "'>" + String(Motion_sensors[i].raw_angle) + "</td>";
+        page += "<td id='ms_mag_" + String(i) + "'>" + String(Motion_sensors[i].magnet_stu) + "</td>";
         page += "</tr>";
     }
     page += "</table>";
@@ -209,16 +223,38 @@ server.on("/storage", HTTP_GET, [](AsyncWebServerRequest *request) {
     page += "    let motionStr='';";
     page += "    switch(f.motion_set){ case 0: motionStr='before_pull_back'; break; case 1: motionStr='need_pull_back'; break; case 2: motionStr='need_send_out'; break; case 3: motionStr='on_use'; break; case 4: motionStr='idle'; break; }";
     page += "    document.getElementById('f_'+i+'_motion').innerText = f.motion_set + ' (' + motionStr + ')';";
-    page += "  }";
+    page += "  }"; // Ende for i Filaments
 
     page += "  document.getElementById('m_check').innerText = data.Motion_check;";
-    //page += "  for(let i=0;i<4;i++){ document.getElementById('md_'+i).innerText = data.Motion_dir[i]; }";
     page += "  for(let i=0;i<4;i++){";
     page += "  document.getElementById('md_'+i).innerText = data.Motion_dir[i]; ";
     page += "  document.getElementById('md_pwm_'+i).innerText = data.Motor_PWM[i];";
-    page += "  }";
+    page += "    let ms = data.Motion_sensors[i];";
 
-    page += "}";
+    page += "    let statusColor_ms_online='', statusStr_ms_online='';";
+    page += "    switch(ms.online){";
+    page += "      case false: statusColor_ms_online='red'; statusStr_ms_online='offline'; break;";
+    page += "      case true: statusColor_ms_online='green'; statusStr_ms_online='online'; break;";
+    page += "      default: statusColor_ms_online='gray'; statusStr_ms_online='unknown'; break;";
+    page += "    }";
+
+    page += "    let magnetColor='gray';";
+    page += "    switch(ms.magnet_stu){";
+    page += "      case 0: magnetColor='green'; statusStr_magnet_stu ='ok'; break;";       // normal - magnet strength
+    page += "      case 1: magnetColor='yellow'; statusStr_magnet_stu ='too_weak'; break;"; // low - magnet too far / weak
+    page += "      case 2: magnetColor='orange'; statusStr_magnet_stu ='too_strong'; break;"; // high - magnet too close / strong
+    page += "      case -1: magnetColor='red'; statusStr_magnet_stu ='offline'; break;";    // offline- no magnet detected / sensor offline
+    page += "      default: magnetColor='gray'; statusStr_magnet_stu ='unknown'; break;";  // unknown state
+    page += "    }";
+
+    page += "    document.getElementById('ms_online_'+i).innerHTML = '<span style=\\\"display:inline-block;width:20px;height:20px;margin-right:5px;background-color:' + statusColor_ms_online + ';\\\"></span>' + ms.online + ' (' + statusStr_ms_online + ')';";
+    page += "    document.getElementById('ms_raw_'+i).innerText = data.Motion_sensors[i].raw_angle;";
+    //page += "    document.getElementById('ms_mag_'+i).innerHTML = '<span style=\"color:' + magnetColor + '; font-size:24px;\">🧲</span> ' + ms.magnet_stu + ' (' + statusStr_magnet_stu + ')';";
+    page += "    document.getElementById('ms_mag_'+i).innerHTML = '<span style=\"display:inline-block;width:24px;height:24px;background-color:' + magnetColor + ';border-radius:50%;margin-right:5px;\"></span>🧲 ' + ms.magnet_stu + ' (' + statusStr_magnet_stu + ')';";
+    
+    page += "  }"; // Ende for i Motion
+
+    page += "}"; // Ende updateStorage
     page += "setInterval(updateStorage, 500);";
     page += "updateStorage();";
     page += "</script>";

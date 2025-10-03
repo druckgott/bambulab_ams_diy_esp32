@@ -2,10 +2,10 @@
 #include <Arduino.h>
 #include "stdlib.h"
 #include "FlashStorage.h"
+#include "many_soft_AS5600.h"
 #include "Motion_control.h"
 #include "BambuBus.h"
 #include "time64.h"
-#include "many_soft_AS5600.h"
 #include "ADC_DMA.h"
 #include "OTA_webserial.h"
 #include "pins.h"

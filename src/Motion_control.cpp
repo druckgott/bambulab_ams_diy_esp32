@@ -18,6 +18,7 @@ uint8_t AS5600_SDA[] = { AS5600_0_SDA, AS5600_1_SDA, AS5600_2_SDA, AS5600_3_SDA 
 float speed_as5600[4] = {0, 0, 0, 0};
 
 int16_t Motor_PWM_value[4] = {0, 0, 0, 0};
+Motion_SensorData Motion_sensors[4];
 
 void MC_PULL_ONLINE_init()
 {
@@ -45,6 +46,8 @@ float_t P1X_OUT_filament_meters = 200.0f;       // Eingebaut: 200 mm, extern: 70
 float_t last_total_distance[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // Initialisierte Entfernung beim Start des Rückzugs
 // bool filament_channel_inserted[4]={false,false,false,false}; // Ob der Kanal eingesetzt ist
 // Verwendung von doppelten Mikroschaltern
+int32_t as5600_distance_save[4] = {0, 0, 0, 0};
+
 #define is_two false
 
 void MC_PULL_ONLINE_read()
@@ -475,9 +478,9 @@ void Motion_control_set_PWM(uint8_t CHx, int PWM)
     }
 }
 
-int32_t as5600_distance_save[4] = {0, 0, 0, 0};
 void AS5600_distance_updata()// AS5600 auslesen, zugehörige Daten aktualisieren
 {
+    //DEBUG_MY("AS5600_distance_updata() aufgerufen");
     static uint64_t time_last = 0;
     uint64_t time_now;
     float T;
@@ -489,6 +492,15 @@ void AS5600_distance_updata()// AS5600 auslesen, zugehörige Daten aktualisieren
     MC_AS5600.updata_angle();
     for (int i = 0; i < 4; i++)
     {
+
+        /*char dbg_status[64];
+        sprintf(dbg_status, "AS5600 Kanal %d online=%d", i, MC_AS5600.online[i]);
+        DEBUG_MY(dbg_status);*/
+
+        Motion_sensors[i].online = MC_AS5600.online[i];
+        Motion_sensors[i].raw_angle = MC_AS5600.raw_angle[i];
+        Motion_sensors[i].magnet_stu = MC_AS5600.magnet_stu[i];
+
         if ((MC_AS5600.online[i] == false))
         {
             as5600_distance_save[i] = 0;
@@ -516,6 +528,19 @@ void AS5600_distance_updata()// AS5600 auslesen, zugehörige Daten aktualisieren
         // T = speed_filter_k / (T + speed_filter_k);
         speed_as5600[i] = speedx; // * (1 - T) + speed_as5600[i] * T; // mm/s
         add_filament_meters(i, distance_E / 1000);
+
+        // ===== DEBUG-Ausgabe AS5600 =====
+        /*char dbg[128];
+        snprintf(dbg, sizeof(dbg),
+                 "AS5600 CH=%d: raw_angle=%d, last_angle=%d, distance_E=%.2f mm, speed=%.2f mm/s, online=%d",
+                 i,
+                 now_distance,
+                 last_distance,
+                 distance_E,
+                 speed_as5600[i],
+                 MC_AS5600.online[i]);
+        DEBUG_MY(dbg);*/
+        // ==================================
     }
     time_last = time_now;
 }

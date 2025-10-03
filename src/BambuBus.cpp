@@ -19,7 +19,8 @@ CRC8 crc_8;
 uint8_t BambuBus_data_buf[1000];
 int BambuBus_have_data = 0;
 uint16_t BambuBus_address = 0;
-bool bambuBusDebugMode = false;
+//bool bambuBusDebugMode = false;
+bool bambuBusDebugMode = true; //bis auf weiteres True bis alle analysen druch sind
 
 uint8_t buf_X[1000];
 CRC8 _RX_IRQ_crcx(RX_IRQ_CRC8_POLY, RX_IRQ_CRC8_INIT, RX_IRQ_CRC8_XOROUT, RX_IRQ_CRC8_REFIN, RX_IRQ_CRC8_REFOUT);
@@ -165,6 +166,9 @@ void set_filament_online(int num, bool if_online)
                 data_save.filament[num].statu = AMS_filament_stu::offline;
             }
         }
+    }
+    else
+    {
     }
 }
 
@@ -636,12 +640,12 @@ bool set_motion(unsigned char read_num, unsigned char statu_flags, unsigned char
                 data_save.filament_use_flag = 0x02;
                 data_save.filament[read_num].pressure = 0x4700;
                 // --- DEBUG ---
-                char dbg[128];
+                /*char dbg[128];
                 sprintf(dbg, "Filament %u set: motion_set=need_send_out, filament_use_flag=0x%02X, pressure=0x%04X",
                         read_num,
                         data_save.filament_use_flag,
                         data_save.filament[read_num].pressure);
-                DEBUG_MY(dbg);
+                DEBUG_MY(dbg);*/
             }
             else if ((statu_flags == 0x09)) // 09 A5 / 09 3F
             {

@@ -40,11 +40,11 @@
 // Er misst den rotationalen Winkel eines Magneten über 12 Bit (0–4095), also sehr präzise.
 // Typischer Einsatz: Motoren, Drehgeber, Positionserfassung.
 #define AS5600_0_SCL 22
-#define AS5600_1_SCL 21
+#define AS5600_1_SCL 23
 #define AS5600_2_SCL 19
 #define AS5600_3_SCL 18
 
-#define AS5600_0_SDA 23
+#define AS5600_0_SDA 21
 #define AS5600_1_SDA 12
 #define AS5600_2_SDA 27
 #define AS5600_3_SDA 33
