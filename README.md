@@ -28,24 +28,6 @@ Additional information:
 
 ---
 
-## 🖼️ Wiring Diagram
-
-```text
- Bambulab AMS (6-Pin)              MAX485                ESP32 (Wemos 32-Pin)
- ──────────────────────           ────────              ─────────────────────
- Pin 1 (A)  ─────────────────────► A
- Pin 2 (B)  ─────────────────────► B
- Pin 3 (GND) ────────────────────► GND ────────────────► GND
- Pin 4 (24V) ── ✗ DO NOT USE
- Pin 5 (NC)  ── ✗
- Pin 6 (NC)  ── ✗
-
-                                   RO ────────────────► GPIO16 (RX)
-                                   DI ────────────────► GPIO17 (TX)
-                               DE+RE ────────────────► GPIO5
-                                   VCC ───────────────► VIN (5V)
-
-```
 ## 🖼️ Version 2 (FAKE AMS with Motor and AS5600)
 
 ![Alternativtext](images/wiring_motor.jpg)
@@ -112,6 +94,27 @@ This wiring diagram covers **Slot 0**: one motor and one AS5600 sensor, using ES
 ## 🖼️ Version 1 (minimal FAKE AMS)
 
 ![Alternativtext](images/wiring.jpg)
+
+---
+
+## 🖼️ Wiring Diagram
+
+```text
+ Bambulab AMS (6-Pin)              MAX485                ESP32 (Wemos 32-Pin)
+ ──────────────────────           ────────              ─────────────────────
+ Pin 1 (A)  ─────────────────────► A
+ Pin 2 (B)  ─────────────────────► B
+ Pin 3 (GND) ────────────────────► GND ────────────────► GND
+ Pin 4 (24V) ── ✗ DO NOT USE
+ Pin 5 (NC)  ── ✗
+ Pin 6 (NC)  ── ✗
+
+                                   RO ────────────────► GPIO16 (RX)
+                                   DI ────────────────► GPIO17 (TX)
+                               DE+RE ────────────────► GPIO5
+                                   VCC ───────────────► VIN (5V)
+
+```
 
 ## 🔌 ESP32 ↔ MAX485 Pinout
 
