@@ -30,8 +30,7 @@ Additional information:
 
 ## 🖼️ Version 2 (FAKE AMS with Motor and AS5600)
 
-![Alternativtext](images/wiring_motor.jpg)
-Picture without AS5600
+![Alternativtext](images/wiring_motor_AS5600.jpg)
 
 # Bambulab AMS DIY ESP32 - Slot 0 Wiring
 
